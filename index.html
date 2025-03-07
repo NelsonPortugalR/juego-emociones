@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mind Orbit Demo</title>
+    <style>
+        body { margin: 0; background: black; }
+        canvas { display: block; margin: auto; }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <script>
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            },
+            physics: {
+                default: 'arcade',
+                arcade: { debug: false }
+            }
+        };
+
+        const game = new Phaser.Game(config);
+
+        let ship;
+        let planet;
+        let energy; // Nueva esfera de energía
+        let stabilityBar;
+        let stability = 100;
+        let timeSurvived = 0;
+        let timeText;
+        let gameOver = false;
+        let messageText; // Para feedback
+
+        function preload() {}
+
+        function create() {
+            // Fondo con estrellas
+            for (let i = 0; i < 10; i++) {
+                this.add.circle(
+                    Phaser.Math.Between(0, 800),
+                    Phaser.Math.Between(0, 600),
+                    2, 0xffffff
+                );
+            }
+
+            // Texto inicial
+            this.add.text(10, 10, 'Mind Orbit Demo', { fontSize: '20px', color: '#ffffff' });
+            messageText = this.add.text(300, 300, '', { fontSize: '30px', color: '#ffffff' });
+            messageText.setVisible(false);
+
+            // Nave
+            ship = this.add.triangle(100, 300, 0, 0, 20, 10, 0, 20, 0xffffff);
+            ship.setStrokeStyle(2, 0x00ff00); // Borde verde inicial
+
+            // Planeta Ira
+            planet = this.add.circle(700, 300, 30, 0xff0000);
+
+            // Energía recolectable
+            energy = this.add.circle(600, 200, 10, 0xffff00); // Amarillo, aparece al azar
+
+            // Barra de estabilidad
+            stabilityBar = this.add.rectangle(400, 50, 200, 20, 0x00ff00);
+            stabilityBar.setOrigin(0.5, 0);
+
+            // Texto de tiempo
+            timeText = this.add.text(10, 40, 'Tiempo: 0 seg', { fontSize: '20px', color: '#ffffff' });
+
+            // Física
+            this.physics.add.existing(ship);
+            this.physics.add.existing(planet);
+            this.physics.add.existing(energy);
+            this.physics.add.collider(ship, planet, hitPlanet, null, this);
+            this.physics.add.collider(ship, energy, collectEnergy, null, this);
+
+            // Input
+            this.input.on('pointerdown', () => {
+                if (!gameOver) ship.y -= 60; // Subida más pronunciada
+            });
+        }
+
+        function update(time) {
+            if (gameOver) return;
+
+            // Movimiento nave
+            ship.x += 2; // Avanza igual
+            if (!this.input.activePointer.isDown) ship.y += 0.5; // Baja más lento (antes 1)
+
+            // Movimiento planeta
+            planet.x -= 1.5;
+            if (planet.x < -30) {
+                planet.x = 850;
+                planet.y = Phaser.Math.Between(100, 500); // Nueva posición aleatoria
+            }
+
+            // Movimiento energía
+            energy.x -= 1;
+            if (energy.x < -10) {
+                energy.x = 850;
+                energy.y = Phaser.Math.Between(100, 500); // Reaparece
+            }
+
+            // Estabilidad
+            stability -= 0.02; // Mucho más lento (antes 0.1)
+            stabilityBar.width = (stability / 100) * 200;
+            if (stability <= 30) {
+                stabilityBar.fillColor = 0xff0000; // Rojo si baja
+                ship.setStrokeStyle(2, 0xff0000); // Nave roja
+            } else {
+                stabilityBar.fillColor = 0x00ff00;
+                ship.setStrokeStyle(2, 0x00ff00);
+            }
+
+            // Tiempo
+            timeSurvived = Math.floor(time / 1000);
+            timeText.setText('Tiempo: ' + timeSurvived + ' seg');
+
+            // Game over
+            if (stability <= 0) {
+                gameOver = true;
+                messageText.setText('Game Over');
+                messageText.setVisible(true);
+            }
+        }
+
+        function hitPlanet() {
+            stability -= 20; // Menos daño (antes 50)
+            ship.setStrokeStyle(2, 0xffff00); // Amarillo como advertencia
+            messageText.setText('¡Auch! -20').setVisible(true);
+            this.time.delayedCall(1000, () => messageText.setVisible(false)); // Mensaje temporal
+        }
+
+        function collectEnergy() {
+            stability += 30; // Ganas estabilidad
+            if (stability > 100) stability = 100; // Límite
+            energy.x = 850; // Reaparece
+            energy.y = Phaser.Math.Between(100, 500);
+            messageText.setText('+30 Energía').setVisible(true);
+            this.time.delayedCall(1000, () => messageText.setVisible(false));
+        }
+    </script>
+</body>
+</html>
