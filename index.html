@@ -6,22 +6,16 @@
     <style>
         body {
             margin: 0;
+            padding: 0;
             background: #000;
             font-family: 'Arial', sans-serif;
             overflow: hidden;
             color: #fff;
         }
-        canvas {
+        #gameCanvas {
             display: block;
-            margin: auto;
-        }
-        #game-container {
-            width: 100%;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            margin: 0 auto;
+            background: #000;
         }
         #loading-screen {
             position: absolute;
@@ -99,17 +93,49 @@
             font-size: 10px;
             cursor: pointer;
         }
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        #game-over h1 {
+            color: #ff0000;
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        #game-over p {
+            color: #fff;
+            font-size: 24px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        #restart-btn {
+            padding: 10px 20px;
+            margin-top: 20px;
+            background: #00ff00;
+            color: black;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div id="loading-screen">
         <h1>MIND ORBIT</h1>
-        <div id="tagline">Sobrevive tus emociones en un caos cósmico.</div>
+        <div id="tagline">Sobrevive tus emociones en un caos cósmico.<br>Patrocinado por [Marca]</div>
         <input id="username-input" type="text" placeholder="Tu nombre (max 10 caracteres)" maxlength="10">
         <button id="start-btn">¡COMENZAR!</button>
     </div>
     
-    <div id="game-container"></div>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
     
     <div id="chat-container">
         <div id="chat-messages"></div>
@@ -121,59 +147,79 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+    <div id="game-over">
+        <h1>GAME OVER</h1>
+        <p id="final-score">Puntuación Final: 0</p>
+        <p id="time-survived">Tiempo Sobrevivido: 0 segundos</p>
+        <p>Top 5: 1. NelsonP - 500 | 2. GrokFan - 450 | 3. StarGirl - 400 | 4. OrbitKing - 350 | 5. MindWave - 300</p>
+        <button id="restart-btn">JUGAR DE NUEVO</button>
+    </div>
+
     <script>
-        // Game configuration
-        const GAME_WIDTH = 800;
-        const GAME_HEIGHT = 600;
+        let canvas, ctx;
         let username = 'Jugador';
         let gameStarted = false;
+        let gameOver = false;
+        let score = 0;
+        let timeSurvived = 0;
+        let stability = 100; // Aumentado a 100
+        let gameTime = 0;
+        
+        let ship = { x: 100, y: 300, width: 20, height: 20, velocity: 0 };
+        let planets = [];
+        let energies = [];
+        let stars = [];
         let otherPlayers = [];
-
-        // Sound effects using Howler
-        const sounds = {
-            background: new Howl({
-                src: ['data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAASAAAeMwAUFBQUFCgUFBQUFDMzMzMzM0dHR0dHR1tbW1tbW29vb29vb4SEhISEhJiYmJiYmKampqampri4uLi4uMzMzMzMzODg4ODg4PT09PT09P////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAQKAAAAAAAAHjOxJuuAAAAAAAAAAAAAAAAAAAAA//tAZAAAA2B2UAyMeIAAAC0AAAAEA0AD+AAEAAgAALQAAAAaySuQWVzJrw1jsjEZ9EpAw8PD8RAREV18AgH//2QAOB//+cKB0oAAFeiwnCwQkMn9ZQ8hSA0JAcmYCH//6ygPg4CYGn/+swCD/9X4SBLW//+t3OQQQj//iBo0P/6g8QACsC0MwSM////4YgGhX//oAQGv/+cJRQQhH/rCAgIn//gNhQC0//0dz4OGv//9FBD/9D8MC0VgMBWJAYw8Jj//K0AAA//JRBoYf/9IvEDDD/wXBoGIf//lU4QAQh/6wCQgaIOQDB8//9I2P/0gEEn/+aSAgQv/UGNDh//UJoYCP/9IhACBn//QJBRgQP/gCQQTf/7hYBAP/8AAIQf/01IIDYRdQAYf/8BQJAiCP/4sBS//8OB4BwP/+kXQBAv/+AwA4GIn/+UHgYA//+wKAgLiEiACQDgYI3////xoCB8Aav//QABC//5iQAAR//0AgYBsT//KNESAMv/1hYCSf/0BIGAOf/5oxzwwCp//4VAAAZf/0i8PAEJpIBEgMdpaXxbCbGlT3FVTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ=='],
-                loop: true,
-                volume: 0.3
-            }),
-            collect: new Howl({
-                src: ['data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAGAAAGmQAcHBwcHBwcHBwcHBwcQEBAQEBAQEBAQEBAQGBgYGBgYGBgYGBgYGCAgICAgICAgICAgICgoKCgoKCgoKCgoKCgwMDAwMDAwMDAwMDA4ODg4ODg4ODg4ODg4P////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJARSAAAAAAAABplDsPpSAAAAAAAAAAAAAAAAAAAA//tMRAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV'],
-                volume: 0.5
-            }),
-            hit: new Howl({
-                src: ['data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAJAAAHWwAMDBISGBgYHx8lJSUrKystLS0zMzM6Ojo6QEBGRkZMTExSUlJZWVlfX19lZWVsbHJycnJ4eH5+fn6EhIqKipCQkJaWnJycnKKioqioqK6urra2tra8vMLCwsjIyM7O1NTU1Nra4ODg4Obm7Ozs8vLy+fn5//8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJARCAAAAAAAAB1v5R3OBAAAAAAAAAAAAAAAAAAAA//tMRAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV'],
-                volume: 0.5
-            }),
-            explosion: new Howl({
-                src: ['data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAOAAAJcAAFBQoKCg8PDxQUFBkZGR4eHiMjIykpKS4uLjMzMzg4OD09PUJCQkdHR0xMTFFRUVZWVltbW2BgYGVlZWpqam9vb3R0dHl5eX5+foODg4iIiI2NjZKSkpeXl5ycnKGhoaampqurq7CwsLW1tbq6ur+/v8TExMnJyc7OztPT09jY2N3d3eLi4ufn5+zs7PHx8fb29vv7+/8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJARBAAAAAAAACXAgf8BxAAAAAAAAAAAAAAAAAAAA//tUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV'],
-                volume: 0.6
-            }),
-            chaotic: new Howl({
-                src: ['data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAGAAADPAALCwsWFhYWISEhISsrKys2NjY2QUFBQUtLS0tWVlZWYGBgYGtra2t1dXV1gICAi4uLi5WVlZWgoKCgqqqqqrW1tbnDw8PDzc3N2NjY2OLi4uLs7Ozs9/f39/8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJARHAAAAAAAAA1wUa5KwAAAAAAAAAAAAAAAAAAAA//sURAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVQ=='],
-                volume: 0.7
-            }),
-        };
-
-        // Start the game when the user clicks the start button
+        
+        const planetTypes = [
+            { name: 'anger', color: '#ff0000', shape: 'rectangle', damage: 15 },
+            { name: 'fear', color: '#9932cc', shape: 'circle', damage: 10 },
+            { name: 'joy', color: '#ffff00', shape: 'star', damage: 5 }
+        ];
+        
+        const eventTypes = [
+            { name: 'memeRain', text: '¡Lluvia de memes! by TikTok', duration: 3000 },
+            { name: 'cosmicScream', text: '¡AHHHHH! by Monster', duration: 1500 },
+            { name: 'dramaPlanet', text: '¡No eres suficiente! by Netflix', duration: 4000 }
+        ];
+        
+        let activeEvent = null;
+        let eventTimer = 0;
+        let nextEventTime = 15000;
+        let message = '';
+        let messageTimer = 0;
+        
+        let lastTime = 0;
+        let animationId;
+        
+        const playerNames = ['NelsonP', 'GrokFan', 'EmoDancer', 'CosmicJohn', 'StarGirl', 'NebulaX', 'OrbitKing', 'MindWave'];
+        
         document.getElementById('start-btn').addEventListener('click', function() {
             username = document.getElementById('username-input').value.trim() || 'Jugador';
             document.getElementById('loading-screen').style.display = 'none';
             document.getElementById('chat-container').style.display = 'block';
             gameStarted = true;
-            startGame();
+            initGame();
         });
-
-        // Chat button events
+        
         document.querySelectorAll('.chat-btn').forEach(button => {
             button.addEventListener('click', function() {
-                if (gameStarted) {
-                    addChatMessage(username + ': ' + this.dataset.message);
-                }
+                if (gameStarted) addChatMessage(username + ': ' + this.dataset.message);
             });
         });
-
+        
+        document.getElementById('restart-btn').addEventListener('click', function() {
+            document.getElementById('game-over').style.display = 'none';
+            gameOver = false;
+            stability = 100;
+            score = 0;
+            timeSurvived = 0;
+            gameTime = 0;
+            planets = []; // Resetear planetas
+            energies = []; // Resetear energías
+            initGame();
+        });
+        
         function addChatMessage(message) {
             const chatMessages = document.getElementById('chat-messages');
             const messageElement = document.createElement('div');
@@ -181,937 +227,465 @@
             messageElement.textContent = message;
             chatMessages.appendChild(messageElement);
             chatMessages.scrollTop = chatMessages.scrollHeight;
-            
-            // Remove old messages if too many
-            if (chatMessages.children.length > 10) {
-                chatMessages.removeChild(chatMessages.children[0]);
+            if (chatMessages.children.length > 10) chatMessages.removeChild(chatMessages.children[0]);
+        }
+        
+        function initGame() {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+            ship.y = canvas.height / 2;
+            ship.velocity = 0;
+            stars = [];
+            otherPlayers = [];
+            createStars();
+            createPlanets();
+            createEnergies();
+            createOtherPlayers();
+            addChatMessage('Sistema: ¡Bienvenido a Mind Orbit, ' + username + '!');
+            document.addEventListener('keydown', handleKeyDown);
+            canvas.addEventListener('click', handleClick);
+            lastTime = performance.now();
+            gameLoop();
+        }
+        
+        function createStars() {
+            for (let i = 0; i < 50; i++) { // Reducido a 50
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 1.5 + 0.5,
+                    alpha: Math.random() * 0.7 + 0.3,
+                    twinkle: Math.random() < 0.3,
+                    twinkleSpeed: Math.random() * 0.01 + 0.005
+                });
             }
         }
         
-        // Generate random player data
-        function generateRandomPlayers(count) {
-            const names = ['NelsonP', 'GrokFan', 'EmoDancer', 'CosmicJohn', 'StarGirl', 'NebulaX', 'OrbitKing', 'MindWave'];
-            const players = [];
-            
-            for (let i = 0; i < count; i++) {
-                players.push({
-                    id: 'player_' + i,
-                    name: names[Math.floor(Math.random() * names.length)] + i,
-                    x: Math.random() * GAME_WIDTH,
-                    y: Math.random() * GAME_HEIGHT,
-                    stability: 20 + Math.random() * 80,
-                    explosion: Math.random() < 0.03 // 3% chance to be exploding
-                });
+        function createPlanets() {
+            for (let i = 0; i < 3; i++) { // Reducido a 3
+                createPlanet();
             }
-            
-            return players;
         }
-
-        function startGame() {
-            // Generate simulated players
-            otherPlayers = generateRandomPlayers(15);
-            
-            // Start background music
-            sounds.background.play();
-            
-            // Game configuration
-            const config = {
-                type: Phaser.AUTO,
-                width: GAME_WIDTH,
-                height: GAME_HEIGHT,
-                parent: 'game-container',
-                backgroundColor: '#000',
-                physics: {
-                    default: 'arcade',
-                    arcade: {
-                        gravity: { y: 0 },
-                        debug: false
+        
+        function createPlanet() {
+            const type = planetTypes[Math.floor(Math.random() * planetTypes.length)];
+            planets.push({
+                x: canvas.width + Math.random() * 400,
+                y: 100 + Math.random() * (canvas.height - 200),
+                radius: 20 + Math.random() * 20,
+                width: 40 + Math.random() * 30,
+                height: 40 + Math.random() * 30,
+                speed: 1 + Math.random() * 1.5,
+                type: type,
+                rotation: 0,
+                rotationSpeed: (Math.random() - 0.5) * 0.02
+            });
+        }
+        
+        function createEnergies() {
+            for (let i = 0; i < 3; i++) { // Reducido a 3
+                createEnergy();
+            }
+        }
+        
+        function createEnergy() {
+            energies.push({
+                x: canvas.width + Math.random() * 300,
+                y: 100 + Math.random() * (canvas.height - 200),
+                radius: 8,
+                speed: 1.5 + Math.random() * 1,
+                value: 5,
+                glow: 0.6
+            });
+        }
+        
+        function createOtherPlayers() {
+            for (let i = 0; i < 5; i++) { // Reducido a 5
+                otherPlayers.push({
+                    id: 'player_' + i,
+                    name: playerNames[Math.floor(Math.random() * playerNames.length)] + i,
+                    x: Math.random() * canvas.width,
+                    y: 100 + Math.random() * (canvas.height - 200),
+                    stability: 20 + Math.random() * 80,
+                    explosion: false,
+                    explosionTime: 0
+                });
+            }
+        }
+        
+        function handleKeyDown(e) {
+            if (e.code === 'Space') stabilizeShip();
+        }
+        
+        function handleClick() {
+            stabilizeShip();
+        }
+        
+        function stabilizeShip() {
+            if (!gameOver) ship.velocity = -6;
+        }
+        
+        function gameLoop(timestamp) {
+            const deltaTime = timestamp - lastTime;
+            lastTime = timestamp;
+            gameTime += deltaTime;
+            update(deltaTime);
+            render();
+            if (!gameOver) animationId = requestAnimationFrame(gameLoop);
+        }
+        
+        function update(deltaTime) {
+            timeSurvived = Math.floor(gameTime / 1000);
+            score = timeSurvived + Math.floor(stability);
+            ship.velocity += 0.2;
+            ship.y += ship.velocity;
+            if (ship.y < 20) ship.y = 20;
+            if (ship.y > canvas.height - 20) ship.y = canvas.height - 20;
+            updatePlanets();
+            updateEnergies();
+            updateOtherPlayers();
+            checkCollisions();
+            stability -= 0.005; // Reducido a 0.005
+            if (stability > 100) stability = 100;
+            if (stability <= 0) {
+                stability = 0;
+                gameOver = true;
+                showGameOver();
+            }
+            if (messageTimer > 0) {
+                messageTimer -= deltaTime;
+                if (messageTimer <= 0) message = '';
+            }
+            if (eventTimer > 0) {
+                eventTimer -= deltaTime;
+                if (eventTimer <= 0) activeEvent = null;
+            } else if (gameTime >= nextEventTime) {
+                triggerRandomEvent();
+                nextEventTime = gameTime + 15000 + Math.random() * 15000;
+            }
+        }
+        
+        function updatePlanets() {
+            for (let i = planets.length - 1; i >= 0; i--) {
+                const planet = planets[i];
+                planet.x -= planet.speed;
+                planet.rotation += planet.rotationSpeed;
+                if (planet.x < -50) {
+                    planets.splice(i, 1);
+                    createPlanet();
+                }
+            }
+        }
+        
+        function updateEnergies() {
+            for (let i = energies.length - 1; i >= 0; i--) {
+                const energy = energies[i];
+                energy.x -= energy.speed;
+                energy.glow = 0.6 + Math.sin(gameTime / 300) * 0.4;
+                if (energy.x < -20) {
+                    energies.splice(i, 1);
+                    createEnergy();
+                }
+            }
+        }
+        
+        function updateOtherPlayers() {
+            for (let i = 0; i < otherPlayers.length; i++) {
+                const player = otherPlayers[i];
+                player.x += (Math.random() * 2 - 0.5);
+                if (Math.random() < 0.05) player.y += Math.random() < 0.5 ? -20 : 10;
+                if (player.x > canvas.width) player.x = 0;
+                if (player.y < 50) player.y = 50;
+                if (player.y > canvas.height - 50) player.y = canvas.height - 50;
+                player.stability -= 0.01;
+                if (Math.random() < 0.01) player.stability += 5;
+                if (player.stability <= 0 || (Math.random() < 0.0005 && !player.explosion)) {
+                    player.explosion = true;
+                    player.explosionTime = gameTime;
+                    player.stability = 0;
+                    if (Math.random() < 0.5) addChatMessage(player.name + ': ¡Boom!');
+                }
+                if (player.explosion && gameTime - player.explosionTime > 2000) {
+                    player.explosion = false;
+                    player.x = 0;
+                    player.stability = 50;
+                }
+            }
+        }
+        
+        function checkCollisions() {
+            for (let i = 0; i < planets.length; i++) {
+                const planet = planets[i];
+                if (ship.x + ship.width > planet.x - planet.width/2 &&
+                    ship.x < planet.x + planet.width/2 &&
+                    ship.y + ship.height > planet.y - planet.height/2 &&
+                    ship.y < planet.y + planet.height/2) {
+                    stability -= planet.type.damage;
+                    if (stability < 0) stability = 0;
+                    message = '¡' + capitalize(planet.type.name) + '! -' + planet.type.damage;
+                    messageTimer = 1000;
+                    if (Math.random() < 0.3) {
+                        const messages = ['¡Auch!', '¡Eso dolió!', 'Cuidado...'];
+                        addChatMessage(username + ': ' + messages[Math.floor(Math.random() * messages.length)]);
                     }
-                },
-                scene: {
-                    preload: preload,
-                    create: create,
-                    update: update
-                }
-            };
-
-            const game = new Phaser.Game(config);
-            
-            // Game variables
-            let ship;
-            let planets;
-            let energyGroup;
-            let otherShips = {};
-            let stabilityBar;
-            let stabilityText;
-            let stability = 50; // Start at 50/100
-            let timeSurvived = 0;
-            let score = 0;
-            let timeText;
-            let scoreText;
-            let gameOver = false;
-            let messageText;
-            let playerNameText;
-            let stars = [];
-            let nebulas = [];
-            let playerLabel;
-            
-            // Planet types with emotions
-            const planetTypes = [
-                { name: 'anger', color: 0xff0000, shape: 'rectangle', damage: 25 },
-                { name: 'fear', color: 0x9932cc, shape: 'circle', damage: 20 },
-                { name: 'joy', color: 0xffff00, shape: 'star', damage: 15 }
-            ];
-            
-            // Chaotic events
-            const chaoticEvents = [
-                { name: 'memeRain', text: '¡Lluvia de memes!', duration: 3000 },
-                { name: 'cosmicScream', text: '¡AHHHHH!', duration: 1500 },
-                { name: 'dramaPlanet', text: '¡No eres suficiente!', duration: 4000 }
-            ];
-            
-            function preload() {
-                // Create loading text
-                const loadingText = this.add.text(GAME_WIDTH/2, GAME_HEIGHT/2, 'Cargando...', {
-                    font: '30px Arial',
-                    fill: '#0f0',
-                    align: 'center'
-                }).setOrigin(0.5);
-                
-                // Preload assets or create them on the fly
-                this.load.image('particle', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAD1JREFUeNpiYGBgmAnEDEDMBMRsQMwKxMxQNhOUzQbEbFDMCsRMUDYjiA3kgJkzgYAJygYLQNlwNhMAAgwAGioQD/B8CO8AAAAASUVORK5CYII=');
-            }
-
-            function create() {
-                // Create starry background
-                createBackground(this);
-                
-                // Initialize game elements
-                createGameElements(this);
-                
-                // Setup input
-                this.input.on('pointerdown', handleInput);
-                this.input.keyboard.on('keydown-SPACE', handleInput);
-                
-                // Update player positions periodically
-                this.time.addEvent({
-                    delay: 100,
-                    callback: updatePlayerPositions,
-                    callbackScope: this,
-                    loop: true
-                });
-                
-                // Schedule chaotic events
-                scheduleChaosEvent(this);
-                
-                // Create particle emitters
-                createParticleEffects(this);
-                
-                // Add other player ships
-                updateOtherPlayers(this);
-                
-                // Add welcome message
-                addChatMessage('Sistema: ¡Bienvenido a Mind Orbit, ' + username + '!');
-            }
-            
-            function createBackground(scene) {
-                // Create stars
-                for (let i = 0; i < 100; i++) {
-                    const star = scene.add.circle(
-                        Phaser.Math.Between(0, GAME_WIDTH),
-                        Phaser.Math.Between(0, GAME_HEIGHT),
-                        Phaser.Math.FloatBetween(0.5, 2),
-                        0xffffff,
-                        Phaser.Math.FloatBetween(0.3, 1)
-                    );
-                    stars.push({
-                        obj: star,
-                        twinkle: Math.random() < 0.3, // 30% of stars twinkle
-                        twinkleSpeed: Phaser.Math.FloatBetween(0.005, 0.02)
-                    });
-                }
-                
-                // Create nebulas (color clouds)
-                for (let i = 0; i < 3; i++) {
-                    const color = Phaser.Display.Color.HSVToRGB(
-                        Math.random(),
-                        0.5,
-                        0.2
-                    ).color;
-                    
-                    const nebula = scene.add.circle(
-                        Phaser.Math.Between(0, GAME_WIDTH),
-                        Phaser.Math.Between(0, GAME_HEIGHT),
-                        Phaser.Math.Between(100, 200),
-                        color,
-                        0.1
-                    );
-                    
-                    nebulas.push({
-                        obj: nebula,
-                        xSpeed: Phaser.Math.FloatBetween(-0.1, 0.1),
-                        ySpeed: Phaser.Math.FloatBetween(-0.1, 0.1)
-                    });
+                    planet.x += 50;
                 }
             }
-            
-            function createGameElements(scene) {
-                // Create ship
-                ship = scene.add.triangle(100, GAME_HEIGHT/2, 0, 0, 20, 10, 0, 20, 0xffffff);
-                ship.setStrokeStyle(2, 0x00ff00);
-                scene.physics.add.existing(ship);
-                ship.body.setCollideWorldBounds(true);
-                
-                // Player username label
-                playerLabel = scene.add.text(100, GAME_HEIGHT/2 - 25, username, {
-                    fontSize: '14px',
-                    fill: '#FFFFFF',
-                    fontStyle: 'bold'
-                }).setOrigin(0.5);
-                
-                // Create ship glow effect
-                const shipGlow = scene.add.triangle(100, GAME_HEIGHT/2, 0, 0, 20, 10, 0, 20, 0x00ff00);
-                shipGlow.setAlpha(0.3);
-                scene.tweens.add({
-                    targets: shipGlow,
-                    alpha: 0.6,
-                    duration: 1000,
-                    yoyo: true,
-                    repeat: -1
-                });
-                
-                // Create planets group
-                planets = scene.physics.add.group();
-                
-                // Create emotional planets
-                for (let i = 0; i < 10; i++) {
-                    createPlanet(scene, Phaser.Math.Between(GAME_WIDTH + 50, GAME_WIDTH + 600));
-                }
-                
-                // Create energy collectibles
-                energyGroup = scene.physics.add.group();
-                for (let i = 0; i < 8; i++) {
-                    createEnergy(scene, Phaser.Math.Between(GAME_WIDTH + 50, GAME_WIDTH + 400));
-                }
-                
-                // Add collision and overlap detection
-                scene.physics.add.collider(ship, planets, hitPlanet, null, scene);
-                scene.physics.add.overlap(ship, energyGroup, collectEnergy, null, scene);
-                
-                // Create UI elements
-                createUI(scene);
-            }
-            
-            function createPlanet(scene, x) {
-                const planetType = planetTypes[Phaser.Math.Between(0, planetTypes.length - 1)];
-                let planet;
-                
-                // Create different shapes based on emotion
-                if (planetType.shape === 'rectangle') {
-                    planet = scene.add.rectangle(
-                        x,
-                        Phaser.Math.Between(100, GAME_HEIGHT - 100),
-                        Phaser.Math.Between(50, 70),
-                        Phaser.Math.Between(50, 70),
-                        planetType.color
-                    );
-                    
-                    // Add spikes for anger planet
-                    for (let i = 0; i < 8; i++) {
-                        const angle = (i / 8) * Math.PI * 2;
-                        const spikeLength = 15;
-                        const spike = scene.add.line(
-                            planet.x,
-                            planet.y,
-                            0, 0,
-                            Math.cos(angle) * spikeLength,
-                            Math.sin(angle) * spikeLength,
-                            planetType.color
-                        );
-                        spike.setLineWidth(3);
-                        planet.spike = spike;
+            for (let i = energies.length - 1; i >= 0; i--) {
+                const energy = energies[i];
+                const dx = ship.x + ship.width/2 - energy.x;
+                const dy = ship.y + ship.height/2 - energy.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < ship.width/2 + energy.radius) {
+                    stability += energy.value;
+                    if (stability > 100) stability = 100;
+                    score += 50;
+                    message = '+' + energy.value + ' Energía\n+50 Puntos';
+                    messageTimer = 1000;
+                    if (Math.random() < 0.2) {
+                        const messages = ['¡Energía!', '+5 💙', '¡Recarga!'];
+                        addChatMessage(username + ': ' + messages[Math.floor(Math.random() * messages.length)]);
                     }
-                    
-                } else if (planetType.shape === 'circle') {
-                    planet = scene.add.circle(
-                        x,
-                        Phaser.Math.Between(100, GAME_HEIGHT - 100),
-                        Phaser.Math.Between(25, 40),
-                        planetType.color
-                    );
-                } else if (planetType.shape === 'star') {
-                    const points = [];
-                    const outerRadius = Phaser.Math.Between(30, 40);
-                    const innerRadius = outerRadius * 0.4;
-                    const spikes = 5;
-                    
-                    for (let i = 0; i < spikes * 2; i++) {
-                        const radius = i % 2 === 0 ? outerRadius : innerRadius;
-                        const angle = (i / (spikes * 2)) * Math.PI * 2;
-                        points.push({
-                            x: Math.cos(angle) * radius,
-                            y: Math.sin(angle) * radius
-                        });
-                    }
-                    
-                    planet = scene.add.polygon(
-                        x,
-                        Phaser.Math.Between(100, GAME_HEIGHT - 100),
-                        points,
-                        planetType.color
-                    );
+                    energies.splice(i, 1);
+                    createEnergy();
                 }
-                
-                // Add physics to the planet
-                scene.physics.add.existing(planet);
-                planets.add(planet);
-                
-                // Set planet properties
-                planet.emotionType = planetType.name;
-                planet.damage = planetType.damage;
-                planet.rotation = Math.random() * Math.PI;
-                planet.rotationSpeed = Phaser.Math.FloatBetween(-0.01, 0.01);
-                planet.body.setVelocity(-Phaser.Math.Between(50, 90), 0);
-                
-                // Add pulsation effect
-                scene.tweens.add({
-                    targets: planet,
-                    scaleX: 1.1,
-                    scaleY: 1.1,
-                    duration: Phaser.Math.Between(1000, 2000),
-                    ease: 'Sine.easeInOut',
-                    yoyo: true,
-                    repeat: -1
-                });
-                
-                return planet;
             }
-            
-            function createEnergy(scene, x) {
-                const energy = scene.add.circle(
-                    x,
-                    Phaser.Math.Between(100, GAME_HEIGHT - 100),
-                    10,
-                    0x00ffff
-                );
-                
-                // Add glow effect
-                const glow = scene.add.circle(
-                    energy.x,
-                    energy.y,
-                    14,
-                    0x00ffff
-                );
-                glow.setAlpha(0.3);
-                
-                scene.tweens.add({
-                    targets: [glow, energy],
-                    alpha: { from: 0.6, to: 1 },
-                    duration: 600,
-                    yoyo: true,
-                    repeat: -1
-                });
-                
-                // Add physics
-                scene.physics.add.existing(energy);
-                energyGroup.add(energy);
-                energy.body.setVelocity(-Phaser.Math.Between(60, 100), 0);
-                energy.energyValue = 5;
-                energy.glow = glow;
-                
-                return energy;
+        }
+        
+        function triggerRandomEvent() {
+            const event = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+            activeEvent = event;
+            eventTimer = event.duration;
+            message = event.text;
+            messageTimer = event.duration;
+            addChatMessage('Sistema: ' + event.text);
+            if (event.name === 'cosmicScream') ship.velocity = Math.random() * 10 - 5;
+        }
+        
+        function render() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            drawStars();
+            drawOtherPlayers();
+            drawPlanets();
+            drawEnergies();
+            drawShip();
+            drawUI();
+            if (activeEvent) drawEventEffects();
+            if (message && messageTimer > 0) drawMessage();
+        }
+        
+        function drawStars() {
+            for (let i = 0; i < stars.length; i++) {
+                const star = stars[i];
+                let alpha = star.alpha;
+                if (star.twinkle) {
+                    alpha = star.alpha + Math.sin(gameTime * star.twinkleSpeed) * 0.3;
+                    alpha = Math.max(0.1, Math.min(1.0, alpha));
+                }
+                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fill();
+                star.x -= 0.1;
+                if (star.x < 0) star.x = canvas.width;
             }
-            
-            function createUI(scene) {
-                // Create score text
-                scoreText = scene.add.text(10, 10, 'Puntuación: 0', {
-                    fontSize: '20px',
-                    fill: '#FFFFFF'
-                });
-                
-                // Create time text
-                timeText = scene.add.text(10, 40, 'Tiempo: 0 seg', {
-                    fontSize: '20px',
-                    fill: '#FFFFFF'
-                });
-                
-                // Create stability bar
-                const barBackground = scene.add.rectangle(GAME_WIDTH - 110, 20, 200, 25, 0x333333);
-                stabilityBar = scene.add.rectangle(GAME_WIDTH - 110, 20, 100, 20, 0x00ff00);
-                stabilityBar.setOrigin(0.5, 0.5);
-                
-                // Create stability text
-                stabilityText = scene.add.text(GAME_WIDTH - 110, 20, '50%', {
-                    fontSize: '14px',
-                    fill: '#FFFFFF',
-                    fontStyle: 'bold'
-                }).setOrigin(0.5);
-                
-                // Create message text for events
-                messageText = scene.add.text(GAME_WIDTH/2, GAME_HEIGHT/2, '', {
-                    fontSize: '30px',
-                    fill: '#FFFFFF',
-                    fontStyle: 'bold'
-                }).setOrigin(0.5);
-                messageText.setVisible(false);
-            }
-            
-            function createParticleEffects(scene) {
-                // Ship trail
-                shipTrail = scene.add.particles(0, 0, 'particle', {
-                    speed: 50,
-                    scale: { start: 0.5, end: 0 },
-                    blendMode: 'ADD',
-                    lifespan: 300,
-                    follow: ship,
-                    followOffset: { x: -20, y: 10 },
-                    frequency: 50
-                });
-            }
-            
-            function updatePlayerPositions() {
-                // Update simulated player positions
-                for (let i = 0; i < otherPlayers.length; i++) {
-                    const player = otherPlayers[i];
-                    
-                    // Random movement
-                    player.x += Math.random() * 4 - 1;
-                    if (Math.random() < 0.1) {
-                        player.y += Math.random() < 0.5 ? -30 : 10;
-                    }
-                    
-                    // Keep within bounds
-                    if (player.x > GAME_WIDTH) player.x = 0;
-                    if (player.y < 50) player.y = 50;
-                    if (player.y > GAME_HEIGHT - 50) player.y = GAME_HEIGHT - 50;
-                    
-                    // Random stability changes
-                    player.stability -= 0.05;
-                    if (Math.random() < 0.03) {
-                        player.stability += 10;
-                    }
-                    
-                    // Check for explosions
-                    if (player.stability <= 0 || Math.random() < 0.001) {
-                        player.explosion = true;
-                        player.stability = 0;
-                        if (Math.random() < 0.5) {
-                            addChatMessage(player.name + ': ¡Boom!');
+        }
+        
+        function drawPlanets() {
+            for (let i = 0; i < planets.length; i++) {
+                const planet = planets[i];
+                ctx.save();
+                ctx.translate(planet.x, planet.y);
+                ctx.rotate(planet.rotation);
+                if (planet.type.shape === 'rectangle') {
+                    ctx.fillStyle = planet.type.color;
+                    ctx.fillRect(-planet.width/2, -planet.height/2, planet.width, planet.height);
+                    if (planet.type.name === 'anger') {
+                        ctx.strokeStyle = planet.type.color;
+                        ctx.lineWidth = 3;
+                        for (let j = 0; j < 8; j++) {
+                            const angle = (j / 8) * Math.PI * 2;
+                            ctx.beginPath();
+                            ctx.moveTo(0, 0);
+                            ctx.lineTo(Math.cos(angle) * (planet.width/2 + 10), Math.sin(angle) * (planet.height/2 + 10));
+                            ctx.stroke();
                         }
                     }
-                    
-                    // Respawn after explosion
-                    if (player.explosion && Math.random() < 0.01) {
-                        player.explosion = false;
-                        player.x = 0;
-                        player.stability = 50;
+                } else if (planet.type.shape === 'circle') {
+                    ctx.fillStyle = planet.type.color;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, planet.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (planet.type.shape === 'star') {
+                    drawStar(0, 0, 5, planet.radius, planet.radius * 0.4, planet.type.color);
+                }
+                ctx.restore();
+            }
+        }
+        
+        function drawStar(x, y, points, outerRadius, innerRadius, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            for (let i = 0; i < points * 2; i++) {
+                const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                const angle = (i / (points * 2)) * Math.PI * 2;
+                const px = x + Math.cos(angle) * radius;
+                const py = y + Math.sin(angle) * radius;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fill();
+        }
+        
+        function drawEnergies() {
+            for (let i = 0; i < energies.length; i++) {
+                const energy = energies[i];
+                ctx.fillStyle = `rgba(0, 255, 255, ${energy.glow * 0.3})`;
+                ctx.beginPath();
+                ctx.arc(energy.x, energy.y, energy.radius + 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = `rgba(0, 255, 255, ${energy.glow})`;
+                ctx.beginPath();
+                ctx.arc(energy.x, energy.y, energy.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        function drawShip() {
+            const color = getStabilityColor(stability);
+            ctx.fillStyle = color.replace('rgb', 'rgba').replace(')', ', 0.3)');
+            ctx.beginPath();
+            ctx.moveTo(ship.x, ship.y);
+            ctx.lineTo(ship.x + ship.width, ship.y + ship.height/2);
+            ctx.lineTo(ship.x, ship.y + ship.height);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(ship.x, ship.y);
+            ctx.lineTo(ship.x + ship.width, ship.y + ship.height/2);
+            ctx.lineTo(ship.x, ship.y + ship.height);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.fillStyle = '#fff';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(username, ship.x + ship.width/2, ship.y - 10);
+        }
+        
+        function drawOtherPlayers() {
+            for (let i = 0; i < otherPlayers.length; i++) {
+                const player = otherPlayers[i];
+                if (player.x >= 0 && player.x <= canvas.width) {
+                    const color = getStabilityColor(player.stability);
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(player.x, player.y);
+                    ctx.lineTo(player.x + 20, player.y + 10);
+                    ctx.lineTo(player.x, player.y + 20);
+                    ctx.closePath();
+                    ctx.stroke();
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    if (player.explosion) {
+                        const size = Math.min(1, (gameTime - player.explosionTime) / 500) * 20;
+                        ctx.fillStyle = '#ff0';
+                        ctx.beginPath();
+                        ctx.arc(player.x + 10, player.y + 10, size, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = '#f00';
+                        ctx.beginPath();
+                        ctx.arc(player.x + 10, player.y + 10, size * 0.7, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillText(player.name + ' 💥', player.x + 10, player.y - 10);
+                    } else {
+                        ctx.fillText(player.name, player.x + 10, player.y - 10);
                     }
                 }
             }
-            
-            function updateOtherPlayers(scene) {
-                // Clear existing ships
-                Object.values(otherShips).forEach(shipData => {
-                    if (shipData.ship) shipData.ship.destroy();
-                    if (shipData.label) shipData.label.destroy();
-                });
-                
-                otherShips = {};
-                
-                // Create ships for other players
-                otherPlayers.forEach(player => {
-                    if (player.x >= 0 && player.x <= GAME_WIDTH) {
-                        // Create ship triangle
-                        const otherShip = scene.add.triangle(player.x, player.y, 0, 0, 20, 10, 0, 20, 0xffffff);
-                        
-                        // Color based on stability
-                        const color = getStabilityColor(player.stability);
-                        otherShip.setStrokeStyle(2, color);
-                        
-                        // Player name label
-                        const label = scene.add.text(player.x, player.y - 25, player.name, {
-                            fontSize: '12px',
-                            fill: '#FFFFFF',
-                            fontStyle: 'bold'
-                        }).setOrigin(0.5);
-                        
-                        // Explosion effect if needed
-                        if (player.explosion) {
-                            scene.add.particles(player.x, player.y, 'particle', {
-                                speed: { min: 50, max: 150 },
-                                scale: { start: 0.5, end: 0 },
-                                blendMode: 'ADD',
-                                tint: [0xff0000, 0xffff00],
-                                lifespan: 800,
-                                quantity: 1,
-                                frequency: 30,
-                                emitting: true
-                            });
-                            
-                            // Play explosion sound with random chance
-                            if (Math.random() < 0.3) {
-                                sounds.explosion.play();
-                            }
-                            
-                            label.setText(player.name + ' 💥');
-                        }
-                        
-                        otherShips[player.id] = {
-                            ship: otherShip,
-                            label: label
-                        };
-                    }
-                });
+        }
+        
+        function drawUI() {
+            ctx.fillStyle = '#fff';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('Puntuación: ' + score, 10, 30);
+            ctx.fillText('Tiempo: ' + timeSurvived + ' seg', 10, 60);
+            ctx.fillStyle = '#333';
+            ctx.fillRect(canvas.width - 220, 10, 200, 25);
+            const barWidth = (stability / 100) * 200;
+            ctx.fillStyle = getStabilityColor(stability);
+            ctx.fillRect(canvas.width - 220, 10, barWidth, 20);
+            ctx.fillStyle = '#fff';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(Math.floor(stability) + '%', canvas.width - 120, 25);
+        }
+        
+        function drawMessage() {
+            ctx.fillStyle = '#fff';
+            ctx.font = '30px Arial';
+            ctx.textAlign = 'center';
+            const lines = message.split('\n');
+            for (let i = 0; i < lines.length; i++) {
+                ctx.fillText(lines[i], canvas.width / 2, canvas.height / 2 + (i * 35));
             }
-            
-            function handleInput() {
-                if (gameOver) {
-                    return;
+        }
+        
+        function drawEventEffects() {
+            if (activeEvent.name === 'memeRain') {
+                const progress = 1 - (eventTimer / activeEvent.duration);
+                const count = 10;
+                for (let i = 0; i < count; i++) {
+                    const x = (canvas.width / count) * i + (canvas.width / count / 2);
+                    const y = -50 + progress * (canvas.height + 100);
+                    const emoji = ['😂', '😱', '🤣', '😜', '🤯'][i % 5];
+                    ctx.font = '40px Arial';
+                    ctx.fillText(emoji, x, y);
                 }
-                
-                // Apply upward force
-                ship.body.velocity.y = -150;
-                
-                // Apply visual feedback
-                ship.setStrokeStyle(3, 0x00ffff);
-                
-                // Reset stroke after 200ms
-                this.time.delayedCall(200, () => {
-                    if (ship) {
-                        const color = getStabilityColor(stability);
-                        ship.setStrokeStyle(2, color);
-                    }
-                });
+            } else if (activeEvent.name === 'cosmicScream') {
+                ctx.save();
+                ctx.translate(Math.random() * 10 - 5, Math.random() * 10 - 5);
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.restore();
+            } else if (activeEvent.name === 'dramaPlanet') {
+                const progress = Math.min(1, (activeEvent.duration - eventTimer) / 1000);
+                const exitProgress = Math.max(0, (eventTimer - 2000) / 1000);
+                const x = canvas.width + 100 - (progress * 300) + (exitProgress * 300);
+                const y = canvas.height / 2;
+                ctx.fillStyle = 'rgba(255, 0, 255, 0.7)';
+                ctx.beginPath();
+                ctx.arc(x, y, 100, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('¡No eres suficiente!', x, y);
             }
-            
-            function hitPlanet(ship, planet) {
-                if (gameOver) return;
-                
-                // Apply damage
-                stability -= planet.damage;
-                if (stability < 0) stability = 0;
-                
-                // Visual feedback
-                ship.setStrokeStyle(3, 0xff0000);
-                this.cameras.main.shake(100, 0.02);
-                
-                // Display hit message
-                messageText.setText('¡' + capitalize(planet.emotionType) + '! -' + planet.damage);
-                messageText.setVisible(true);
-                
-                // Hide message after 1 second
-                this.time.delayedCall(1000, () => {
-                    messageText.setVisible(false);
-                });
-                
-                // Play hit sound
-                sounds.hit.play();
-                
-                // Add particles for impact
-                this.add.particles(planet.x, planet.y, 'particle', {
-                    speed: { min: 50, max: 150 },
-                    scale: { start: 0.6, end: 0 },
-                    tint: [planet.fillColor],
-                    blendMode: 'ADD',
-                    lifespan: 500,
-                    quantity: 15,
-                    emitting: false
-                }).explode();
-                
-                // Random chance to post to chat
-                if (Math.random() < 0.3) {
-                    const messages = ['¡Auch!', '¡Eso dolió!', 'Cuidado...'];
-                    addChatMessage(username + ': ' + messages[Math.floor(Math.random() * messages.length)]);
-                }
-            }
-            
-            function collectEnergy(ship, energy) {
-                // Increase stability
-                stability += energy.energyValue;
-                if (stability > 100) stability = 100;
-                
-                // Increase score
-                score += 50;
-                
-                // Remove energy
-                const x = energy.x;
-                const y = energy.y;
-                energy.glow.destroy();
-                energy.disableBody(true, true);
-                
-                // Create new energy
-                createEnergy(this, GAME_WIDTH + Phaser.Math.Between(50, 300));
-                
-                // Display message
-                messageText.setText('+' + energy.energyValue + ' Energía\n+50 Puntos');
-                messageText.setVisible(true);
-                
-                // Hide message after 1 second
-                this.time.delayedCall(1000, () => {
-                    messageText.setVisible(false);
-                });
-                
-                // Play collect sound
-                sounds.collect.play();
-                
-                // Add collection particles
-                this.add.particles(x, y, 'particle', {
-                    speed: { min: 50, max: 150 },
-                    scale: { start: 0.6, end: 0 },
-                    tint: [0x00ffff],
-                    blendMode: 'ADD',
-                    lifespan: 800,
-                    quantity: 20,
-                    emitting: false
-                }).explode();
-                
-                // Random chance to post to chat
-                if (Math.random() < 0.2) {
-                    const messages = ['¡Energía!', '+5 💙', '¡Recarga!'];
-                    addChatMessage(username + ': ' + messages[Math.floor(Math.random() * messages.length)]);
-                }
-            }
-            
-            function scheduleChaosEvent(scene) {
-                // Schedule next chaotic event
-                scene.time.delayedCall(Phaser.Math.Between(20000, 30000), () => {
-                    if (!gameOver) {
-                        triggerChaosEvent(scene);
-                        scheduleChaosEvent(scene); // Schedule next event
-                    }
-                });
-            }
-            
-            function triggerChaosEvent(scene) {
-                const event = chaoticEvents[Phaser.Math.Between(0, chaoticEvents.length - 1)];
-                
-                // Play chaotic sound
-                sounds.chaotic.play();
-                
-                // Flash screen
-                scene.cameras.main.flash(500, 255, 0, 255);
-                
-                // Show message
-                messageText.setText(event.text);
-                messageText.setFontSize('36px');
-                messageText.setVisible(true);
-                
-                // Add to chat
-                addChatMessage('Sistema: ' + event.text);
-                
-                // Event-specific effects
-                if (event.name === 'memeRain') {
-                    // Create meme faces falling
-                    for (let i = 0; i < 10; i++) {
-                        const x = Phaser.Math.Between(0, GAME_WIDTH);
-                        const size = Phaser.Math.Between(30, 70);
-                        const meme = scene.add.circle(x, -size, size, 0xffffff, 0.6);
-                        
-                        // Add emoji face
-                        const faceText = scene.add.text(x, -size, ['😂', '😱', '🤣', '😜', '🤯'][Phaser.Math.Between(0, 4)], {
-                            fontSize: size + 'px'
-                        }).setOrigin(0.5);
-                        
-                        // Animate falling
-                        scene.tweens.add({
-                            targets: [meme, faceText],
-                            y: GAME_HEIGHT + size,
-                            duration: Phaser.Math.Between(2000, 3000),
-                            ease: 'Cubic.easeIn',
-                            onComplete: () => {
-                                meme.destroy();
-                                faceText.destroy();
-                            }
-                        });
-                    }
-                } else if (event.name === 'cosmicScream') {
-                    // Make everything shake
-                    scene.cameras.main.shake(1000, 0.03);
-                    ship.body.velocity.y = Phaser.Math.Between(-200, 200);
-                    
-                    // Chance to lose stability if player panics (clicks)
-                    scene.time.delayedCall(300, () => {
-                        scene.input.once('pointerdown', () => {
-                            stability -= 10;
-                            if (stability < 0) stability = 0;
-                            
-                            messageText.setText('¡PÁNICO! -10');
-                            addChatMessage('Sistema: ' + username + ' entró en pánico');
-                        });
-                    });
-                } else if (event.name === 'dramaPlanet') {
-                    // Create giant planet with dramatic message
-                    const dramaPlanet = scene.add.circle(
-                        GAME_WIDTH + 100,
-                        GAME_HEIGHT/2,
-                        150,
-                        0xff00ff,
-                        0.7
-                    );
-                    
-                    // Add dramatic text
-                    const phrases = [
-                        '¡No eres suficiente!',
-                        '¡Todos te miran!',
-                        '¡Fallaste!',
-                        '¡Qué vergüenza!'
-                    ];
-                    
-                    const drama = scene.add.text(
-                        GAME_WIDTH + 100,
-                        GAME_HEIGHT/2,
-                        phrases[Phaser.Math.Between(0, phrases.length - 1)],
-                        {
-                            fontSize: '20px',
-                            fontStyle: 'bold',
-                            fill: '#ffffff',
-                            align: 'center'
-                        }
-                    ).setOrigin(0.5);
-                    
-                    // Animate planet entry and exit
-                    scene.tweens.add({
-                        targets: [dramaPlanet, drama],
-                        x: GAME_WIDTH * 0.7,
-                        duration: 1500,
-                        ease: 'Sine.easeOut',
-                        yoyo: true,
-                        hold: 1000,
-                        onComplete: () => {
-                            dramaPlanet.destroy();
-                            drama.destroy();
-                        }
-                    });
-                }
-                
-                // Hide event message after duration
-                scene.time.delayedCall(event.duration, () => {
-                    messageText.setVisible(false);
-                    messageText.setFontSize('30px');
-                });
-            }
-            
-            function update(time) {
-                if (!gameStarted || gameOver) return;
-                
-                // Move ship automatically
-                ship.x += 2;
-                if (ship.x > GAME_WIDTH) ship.x = 0;
-                
-                // Apply gravity-like effect
-                if (ship.body.velocity.y < 100) {
-                    ship.body.velocity.y += 3;
-                }
-                
-                // Update player label position
-                playerLabel.x = ship.x;
-                playerLabel.y = ship.y - 25;
-                
-                // Update other players
-                updateOtherPlayers(this);
-                
-                // Update planets rotation and respawn if offscreen
-                planets.getChildren().forEach(planet => {
-                    // Rotate planet
-                    planet.rotation += planet.rotationSpeed;
-                    
-                    // Check if offscreen
-                    if (planet.x < -50) {
-                        // Reposition planet
-                        planet.x = GAME_WIDTH + Phaser.Math.Between(50, 300);
-                        planet.y = Phaser.Math.Between(100, GAME_HEIGHT - 100);
-                        
-                        // Apply new velocity
-                        planet.body.setVelocity(-Phaser.Math.Between(50, 90), 0);
-                        
-                        // Update rotation speed
-                        planet.rotationSpeed = Phaser.Math.FloatBetween(-0.01, 0.01);
-                    }
-                    
-                    // Update spike positions if it's an anger planet
-                    if (planet.spike) {
-                        planet.spike.setPosition(planet.x, planet.y);
-                        planet.spike.setRotation(planet.rotation);
-                    }
-                });
-                
-                // Update energy positions and respawn if offscreen
-                energyGroup.getChildren().forEach(energy => {
-                    // Update glow position
-                    if (energy.glow) {
-                        energy.glow.x = energy.x;
-                        energy.glow.y = energy.y;
-                    }
-                    
-                    // Check if offscreen
-                    if (energy.x < -20) {
-                        // Destroy current energy
-                        if (energy.glow) energy.glow.destroy();
-                        energy.destroy();
-                        
-                        // Create new energy
-                        createEnergy(this, GAME_WIDTH + Phaser.Math.Between(50, 300));
-                    }
-                });
-                
-                // Update background stars
-                stars.forEach(star => {
-                    // Make stars twinkle
-                    if (star.twinkle) {
-                        const alpha = star.obj.fillAlpha + Math.sin(time * star.twinkleSpeed) * 0.3;
-                        star.obj.setFillAlpha(Phaser.Math.Clamp(alpha, 0.3, 1));
-                    }
-                    
-                    // Slowly move stars
-                    star.obj.x -= 0.1;
-                    if (star.obj.x < 0) star.obj.x = GAME_WIDTH;
-                });
-                
-                // Update nebula positions
-                nebulas.forEach(nebula => {
-                    nebula.obj.x += nebula.xSpeed;
-                    nebula.obj.y += nebula.ySpeed;
-                    
-                    // Wrap around screen
-                    if (nebula.obj.x < -200) nebula.obj.x = GAME_WIDTH + 200;
-                    if (nebula.obj.x > GAME_WIDTH + 200) nebula.obj.x = -200;
-                    if (nebula.obj.y < -200) nebula.obj.y = GAME_HEIGHT + 200;
-                    if (nebula.obj.y > GAME_HEIGHT + 200) nebula.obj.y = -200;
-                });
-                
-                // Update stability (natural decay)
-                stability -= 0.01;
-                if (stability < 0) stability = 0;
-                
-                // Update stability bar
-                const width = (stability / 100) * 200;
-                stabilityBar.width = width;
-                stabilityBar.fillColor = getStabilityColor(stability);
-                stabilityText.setText(Math.floor(stability) + '%');
-                
-                // Update ship color based on stability
-                ship.setStrokeStyle(2, getStabilityColor(stability));
-                
-                // Update score
-                const survivalSeconds = Math.floor(time / 1000);
-                timeSurvived = survivalSeconds;
-                timeText.setText('Tiempo: ' + survivalSeconds + ' seg');
-                
-                // Calculate score (time + stability + collected energy)
-                score = survivalSeconds + Math.floor(stability);
-                scoreText.setText('Puntuación: ' + score);
-                
-                // Check for game over
-                if (stability <= 0 && !gameOver) {
-                    gameOver = true;
-                    createGameOverScreen(this);
-                }
-            }
-            
-            function createGameOverScreen(scene) {
-                // Create dark overlay
-                const overlay = scene.add.rectangle(
-                    GAME_WIDTH/2,
-                    GAME_HEIGHT/2,
-                    GAME_WIDTH,
-                    GAME_HEIGHT,
-                    0x000000,
-                    0.8
-                );
-                
-                // Create game over text
-                const gameOverText = scene.add.text(
-                    GAME_WIDTH/2,
-                    GAME_HEIGHT/2 - 100,
-                    'GAME OVER',
-                    {
-                        fontSize: '60px',
-                        fontStyle: 'bold',
-                        fill: '#ff0000'
-                    }
-                ).setOrigin(0.5);
-                
-                // Create final score text
-                const finalScoreText = scene.add.text(
-                    GAME_WIDTH/2,
-                    GAME_HEIGHT/2,
-                    'Puntuación Final: ' + score + '\nTiempo Sobrevivido: ' + timeSurvived + ' segundos',
-                    {
-                        fontSize: '30px',
-                        fill: '#ffffff',
-                        align: 'center'
-                    }
-                ).setOrigin(0.5);
-                
-                // Create restart button
-                const restartButton = scene.add.rectangle(
-                    GAME_WIDTH/2,
-                    GAME_HEIGHT/2 + 100,
-                    200,
-                    50,
-                    0x00ff00
-                ).setInteractive();
-                
-                const restartText = scene.add.text(
-                    GAME_WIDTH/2,
-                    GAME_HEIGHT/2 + 100,
-                    'JUGAR DE NUEVO',
-                    {
-                        fontSize: '20px',
-                        fontStyle: 'bold',
-                        fill: '#000000'
-                    }
-                ).setOrigin(0.5);
-                
-                // Add restart functionality
-                restartButton.on('pointerdown', () => {
-                    scene.scene.restart();
-                    gameOver = false;
-                    stability = 50;
-                    score = 0;
-                    timeSurvived = 0;
-                });
-                
-                // Create explosion effect at ship position
-                const emitter = scene.add.particles(ship.x, ship.y, 'particle', {
-                    speed: { min: 50, max: 300 },
-                    scale: { start: 1, end: 0 },
-                    blendMode: 'ADD',
-                    tint: [0xff0000, 0xffff00, 0x00ffff],
-                    lifespan: 1000,
-                    quantity: 50,
-                    emitting: false
-                });
-                
-                emitter.explode();
-                
-                // Play explosion sound
-                sounds.explosion.play();
-                
-                // Add to chat
-                addChatMessage('Sistema: ' + username + ' explotó con ' + score + ' puntos');
-                
-                // Shake camera
-                scene.cameras.main.shake(1000, 0.03);
-                
-                // Destroy ship
-                ship.setVisible(false);
-                playerLabel.setVisible(false);
-            }
-            
-            function getStabilityColor(stabilityValue) {
-                if (stabilityValue <= 30) {
-                    return 0xff0000; // Red
-                } else if (stabilityValue <= 60) {
-                    return 0xffff00; // Yellow
-                } else {
-                    return 0x00ff00; // Green
-                }
-            }
-            
-            function capitalize(string) {
-                return string.charAt(0).toUpperCase() + string.slice(1);
-            }
+        }
+        
+        function showGameOver() {
+            document.getElementById('game-over').style.display = 'flex';
+            document.getElementById('final-score').textContent = 'Puntuación Final: ' + score;
+            document.getElementById('time-survived').textContent = 'Tiempo Sobrevivido: ' + timeSurvived + ' segundos';
+            addChatMessage('Sistema: ' + username + ' explotó con ' + score + ' puntos');
+            cancelAnimationFrame(animationId);
+        }
+        
+        function getStabilityColor(value) {
+            if (value <= 30) return 'rgb(255, 0, 0)';
+            else if (value <= 60) return 'rgb(255, 255, 0)';
+            else return 'rgb(0, 255, 0)';
+        }
+        
+        function capitalize(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
         }
     </script>
 </body>
