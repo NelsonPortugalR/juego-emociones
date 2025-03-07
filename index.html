@@ -28,20 +28,23 @@
         const game = new Phaser.Game(config);
 
         let ship;
-        let planet;
+        let planets;
         let energy;
         let stabilityBar;
         let stability = 100;
         let timeSurvived = 0;
+        let score = 0;
         let timeText;
+        let scoreText;
         let gameOver = false;
         let messageText;
+        let sponsorText;
 
         function preload() {}
 
         function create() {
             // Fondo con estrellas
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < 30; i++) {
                 this.add.circle(
                     Phaser.Math.Between(0, 800),
                     Phaser.Math.Between(0, 600),
@@ -54,74 +57,99 @@
             messageText = this.add.text(300, 300, '', { fontSize: '30px', color: '#ffffff' });
             messageText.setVisible(false);
 
+            // Patrocinador más prominente
+            sponsorText = this.add.text(300, 100, 'Patrocinado por: [Marca]', { fontSize: '24px', color: '#00ffff' });
+            sponsorText.setVisible(false); // Aparece al inicio y en eventos
+
             // Nave
             ship = this.add.triangle(100, 300, 0, 0, 20, 10, 0, 20, 0xffffff);
             ship.setStrokeStyle(2, 0x00ff00);
 
-            // Planeta Ira
-            planet = this.add.circle(700, 300, 30, 0xff0000);
+            // Planetas (ahora 3)
+            planets = this.physics.add.group();
+            for (let i = 0; i < 3; i++) {
+                let planet = planets.create(700 + i * 250, Phaser.Math.Between(100, 500), 'planet');
+                planet.displayWidth = 60;
+                planet.displayHeight = 60;
+                planet.setCircle(30);
+                planet.setTint(Phaser.Display.Color.RandomRGB().color);
+            }
 
-            // Energía recolectable
-            energy = this.add.circle(600, 200, 10, 0xffff00);
+            // Energía recolectable (más frecuente)
+            energy = this.physics.add.group();
+            for (let i = 0; i < 5; i++) {
+                let e = energy.create(600 + i * 120, Phaser.Math.Between(100, 500), 'energy');
+                e.displayWidth = 20;
+                e.displayHeight = 20;
+                e.setCircle(10);
+                e.setTint(0xffff00);
+            }
 
             // Barra de estabilidad
             stabilityBar = this.add.rectangle(400, 50, 200, 20, 0x00ff00);
             stabilityBar.setOrigin(0.5, 0);
 
-            // Texto de tiempo
+            // Texto de tiempo y puntuación
             timeText = this.add.text(10, 40, 'Tiempo: 0 seg', { fontSize: '20px', color: '#ffffff' });
+            scoreText = this.add.text(10, 70, 'Puntuación: 0', { fontSize: '20px', color: '#ffffff' });
 
             // Física
             this.physics.add.existing(ship);
-            this.physics.add.existing(planet);
-            this.physics.add.existing(energy);
-            this.physics.add.collider(ship, planet, hitPlanet, null, this);
-            this.physics.add.collider(ship, energy, collectEnergy, null, this);
+            this.physics.add.collider(ship, planets, hitPlanet, null, this);
+            this.physics.add.overlap(ship, energy, collectEnergy, null, this);
 
             // Input
             this.input.on('pointerdown', () => {
-                if (!gameOver) ship.y -= 40; // Subida más suave (antes 60)
+                if (!gameOver) ship.y -= 40;
             });
+
+            // Evento caótico cada 10 segundos
+            this.time.addEvent({
+                delay: 10000,
+                callback: chaoticEvent,
+                callbackScope: this,
+                loop: true
+            });
+
+            // Mostrar patrocinador al inicio
+            sponsorText.setVisible(true);
+            this.time.delayedCall(2000, () => sponsorText.setVisible(false));
         }
 
         function update(time) {
             if (gameOver) return;
 
             // Movimiento nave
-            ship.x += 2; // Avanza
-            if (!this.input.activePointer.isDown) ship.y += 0.5; // Baja lento
+            ship.x += 2;
+            if (!this.input.activePointer.isDown) ship.y += 0.5;
 
             // Límites verticales
-            if (ship.y < 50) {
-                ship.y = 50; // Tope superior
-                messageText.setText('¡No tan alto!').setVisible(true);
-                this.time.delayedCall(1000, () => messageText.setVisible(false));
-            }
-            if (ship.y > 550) {
-                ship.y = 550; // Tope inferior
-                messageText.setText('¡No tan bajo!').setVisible(true);
-                this.time.delayedCall(1000, () => messageText.setVisible(false));
-            }
+            if (ship.y < 50) ship.y = 50;
+            if (ship.y > 550) ship.y = 550;
 
             // Reaparición horizontal
-            if (ship.x > 800) ship.x = 0; // Vuelve al inicio
+            if (ship.x > 800) ship.x = 0;
 
-            // Movimiento planeta
-            planet.x -= 1.5;
-            if (planet.x < -30) {
-                planet.x = 850;
-                planet.y = Phaser.Math.Between(100, 500);
-            }
+            // Movimiento planetas (más lento)
+            planets.children.iterate(function (planet) {
+                planet.x -= 1.2; // Reducido de 1.5
+                if (planet.x < -30) {
+                    planet.x = 850;
+                    planet.y = Phaser.Math.Between(100, 500);
+                }
+            });
 
             // Movimiento energía
-            energy.x -= 1;
-            if (energy.x < -10) {
-                energy.x = 850;
-                energy.y = Phaser.Math.Between(100, 500);
-            }
+            energy.children.iterate(function (e) {
+                e.x -= 1;
+                if (e.x < -10) {
+                    e.x = 850;
+                    e.y = Phaser.Math.Between(100, 500);
+                }
+            });
 
-            // Estabilidad
-            stability -= 0.02;
+            // Estabilidad (más suave)
+            stability -= 0.01; // Reducido de 0.015
             stabilityBar.width = (stability / 100) * 200;
             if (stability <= 30) {
                 stabilityBar.fillColor = 0xff0000;
@@ -131,32 +159,60 @@
                 ship.setStrokeStyle(2, 0x00ff00);
             }
 
-            // Tiempo
+            // Tiempo y puntuación con bonificación
             timeSurvived = Math.floor(time / 1000);
             timeText.setText('Tiempo: ' + timeSurvived + ' seg');
+            score = timeSurvived * 10 + Math.floor(stability);
+            scoreText.setText('Puntuación: ' + score);
 
             // Game over
             if (stability <= 0) {
                 gameOver = true;
-                messageText.setText('Game Over');
+                messageText.setText('Game Over\nPuntuación: ' + score);
                 messageText.setVisible(true);
             }
         }
 
-        function hitPlanet() {
-            stability -= 20;
+        function hitPlanet(ship, planet) {
+            stability -= 15;
             ship.setStrokeStyle(2, 0xffff00);
-            messageText.setText('¡Auch! -20').setVisible(true);
+            messageText.setText('¡Auch! -15').setVisible(true);
             this.time.delayedCall(1000, () => messageText.setVisible(false));
         }
 
-        function collectEnergy() {
-            stability += 30;
+        function collectEnergy(ship, e) {
+            stability += 20;
             if (stability > 100) stability = 100;
-            energy.x = 850;
-            energy.y = Phaser.Math.Between(100, 500);
-            messageText.setText('+30 Energía').setVisible(true);
+            score += 50; // Bonificación por energía
+            e.x = 850;
+            e.y = Phaser.Math.Between(100, 500);
+            messageText.setText('+20 Energía\n+50 Puntos').setVisible(true);
             this.time.delayedCall(1000, () => messageText.setVisible(false));
+            // Efecto visual simple
+            this.add.circle(e.x, e.y, 15, 0xffff00).setScale(0).setDepth(-1)
+                .setScale(1, 0.001).destroy(500);
+        }
+
+        function chaoticEvent() {
+            if (gameOver) return;
+            // Tormenta de asteroides
+            for (let i = 0; i < 5; i++) {
+                let asteroid = this.physics.add.circle(850, Phaser.Math.Between(100, 500), 10, 0x808080);
+                asteroid.setVelocityX(-150);
+                this.time.delayedCall(2000, () => asteroid.destroy());
+                this.physics.add.collider(ship, asteroid, () => {
+                    stability -= 10;
+                    messageText.setText('¡Asteroide! -10').setVisible(true);
+                    this.time.delayedCall(1000, () => messageText.setVisible(false));
+                });
+            }
+            this.cameras.main.flash(500, 255, 0, 0);
+            messageText.setText('¡Tormenta de Asteroides!').setVisible(true);
+            sponsorText.setVisible(true);
+            this.time.delayedCall(2000, () => {
+                messageText.setVisible(false);
+                sponsorText.setVisible(false);
+            });
         }
     </script>
 </body>
