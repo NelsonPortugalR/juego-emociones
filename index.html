@@ -160,9 +160,10 @@
         let username = 'Jugador';
         let gameStarted = false;
         let gameOver = false;
-        let score = 0;
+        let score = 0; // Ahora lo gestionamos mejor
+        let baseScore = 0; // Puntuación base antes del multiplicador
         let timeSurvived = 0;
-        let stability = 100; // Aumentado a 100
+        let stability = 100;
         let gameTime = 0;
         
         let ship = { x: 100, y: 300, width: 20, height: 20, velocity: 0 };
@@ -213,10 +214,11 @@
             gameOver = false;
             stability = 100;
             score = 0;
+            baseScore = 0; // Reiniciamos baseScore
             timeSurvived = 0;
             gameTime = 0;
-            planets = []; // Resetear planetas
-            energies = []; // Resetear energías
+            planets = [];
+            energies = [];
             initGame();
         });
         
@@ -249,7 +251,7 @@
         }
         
         function createStars() {
-            for (let i = 0; i < 50; i++) { // Reducido a 50
+            for (let i = 0; i < 50; i++) {
                 stars.push({
                     x: Math.random() * canvas.width,
                     y: Math.random() * canvas.height,
@@ -262,7 +264,7 @@
         }
         
         function createPlanets() {
-            for (let i = 0; i < 3; i++) { // Reducido a 3
+            for (let i = 0; i < 3; i++) {
                 createPlanet();
             }
         }
@@ -278,12 +280,13 @@
                 speed: 1 + Math.random() * 1.5,
                 type: type,
                 rotation: 0,
-                rotationSpeed: (Math.random() - 0.5) * 0.02
+                rotationSpeed: (Math.random() - 0.5) * 0.02,
+                passed: false // Para detectar si fue esquivado
             });
         }
         
         function createEnergies() {
-            for (let i = 0; i < 3; i++) { // Reducido a 3
+            for (let i = 0; i < 3; i++) {
                 createEnergy();
             }
         }
@@ -300,7 +303,7 @@
         }
         
         function createOtherPlayers() {
-            for (let i = 0; i < 5; i++) { // Reducido a 5
+            for (let i = 0; i < 5; i++) {
                 otherPlayers.push({
                     id: 'player_' + i,
                     name: playerNames[Math.floor(Math.random() * playerNames.length)] + i,
@@ -336,7 +339,11 @@
         
         function update(deltaTime) {
             timeSurvived = Math.floor(gameTime / 1000);
-            score = timeSurvived + Math.floor(stability);
+            // Nuevo cálculo de puntuación base
+            baseScore = timeSurvived * 10; // 10 puntos por segundo
+            const stabilityMultiplier = 0.5 + (stability / 100); // 0.5x a 1.5x
+            score = Math.floor(baseScore * stabilityMultiplier); // Puntuación final
+
             ship.velocity += 0.2;
             ship.y += ship.velocity;
             if (ship.y < 20) ship.y = 20;
@@ -345,7 +352,7 @@
             updateEnergies();
             updateOtherPlayers();
             checkCollisions();
-            stability -= 0.005; // Reducido a 0.005
+            stability -= 0.005;
             if (stability > 100) stability = 100;
             if (stability <= 0) {
                 stability = 0;
@@ -358,7 +365,12 @@
             }
             if (eventTimer > 0) {
                 eventTimer -= deltaTime;
-                if (eventTimer <= 0) activeEvent = null;
+                if (eventTimer <= 0) {
+                    activeEvent = null;
+                    baseScore += 100; // Bonus por sobrevivir evento
+                    message = '+100 Evento Superado';
+                    messageTimer = 1000;
+                }
             } else if (gameTime >= nextEventTime) {
                 triggerRandomEvent();
                 nextEventTime = gameTime + 15000 + Math.random() * 15000;
@@ -370,6 +382,13 @@
                 const planet = planets[i];
                 planet.x -= planet.speed;
                 planet.rotation += planet.rotationSpeed;
+                // Bonus por esquivar
+                if (!planet.passed && planet.x < ship.x - planet.width/2) {
+                    planet.passed = true;
+                    baseScore += 10;
+                    message = '+10 Esquivado';
+                    messageTimer = 1000;
+                }
                 if (planet.x < -50) {
                     planets.splice(i, 1);
                     createPlanet();
@@ -438,8 +457,8 @@
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 if (distance < ship.width/2 + energy.radius) {
                     stability += energy.value;
+                    baseScore += 50; // Bonus por energía
                     if (stability > 100) stability = 100;
-                    score += 50;
                     message = '+' + energy.value + ' Energía\n+50 Puntos';
                     messageTimer = 1000;
                     if (Math.random() < 0.2) {
