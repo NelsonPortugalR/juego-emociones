@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión Emocional - Prototipo</title>
+    <title>Gestión del Miedo - Prototipo</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -28,31 +28,21 @@
         .emotion-selector {
             display: flex;
             justify-content: center;
-            gap: 15px;
             margin-bottom: 30px;
-            flex-wrap: wrap;
         }
-        .emotion-btn {
+        .fear-btn {
             padding: 12px 20px;
             border: none;
             border-radius: 25px;
-            background-color: #e0e0e0;
-            color: #333;
+            background-color: #e74c3c;
+            color: white;
             font-size: 16px;
             cursor: pointer;
             transition: all 0.3s;
         }
-        .emotion-btn:hover {
+        .fear-btn:hover {
             transform: translateY(-3px);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-        .emotion-btn.active {
-            background-color: #3498db;
-            color: white;
-        }
-        .fear-btn {
-            background-color: #e74c3c;
-            color: white;
         }
         .question-container {
             display: none;
@@ -176,9 +166,6 @@
         }
         .save-btn {
             background-color: #2ecc71;
-        }
-        .new-session-btn {
-            background-color: #e74c3c;
         }
         .breath-animation {
             text-align: center;
@@ -331,29 +318,11 @@
             color: #3498db;
             font-size: 1.2em;
         }
-        
-        /* Para iconos */
-        .material-icons {
-            font-family: 'Material Icons';
-            font-weight: normal;
-            font-style: normal;
-            font-size: 24px;
-            line-height: 1;
-            letter-spacing: normal;
-            text-transform: none;
-            display: inline-block;
-            white-space: nowrap;
-            word-wrap: normal;
-            direction: ltr;
-            -moz-font-feature-settings: 'liga';
-            -moz-osx-font-smoothing: grayscale;
-        }
     </style>
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
     <div class="container">
-        <h1>Gestión Emocional</h1>
+        <h1>Gestión del Miedo</h1>
         
         <div class="progress-indicator">
             <div class="step active" id="step1">1</div>
@@ -363,26 +332,19 @@
             <div class="step" id="step5">5</div>
         </div>
         
-        <!-- Selector de emociones -->
+        <!-- Pantalla inicial -->
         <div id="emotion-selection">
-            <h2>¿Qué estás sintiendo ahora?</h2>
+            <h2>Procesa y gestiona tu miedo</h2>
             
             <div class="privacy-notice">
-                <i class="material-icons">info</i>
                 <div>
                     <strong>Nota de privacidad:</strong> Todas las reflexiones son anónimas y se comparten con la comunidad para que nadie se sienta solo en su proceso.
                 </div>
             </div>
             
-            <div class="emotion-selector">
-                <button class="emotion-btn fear-btn active">Miedo</button>
-                <button class="emotion-btn" disabled>Tristeza</button>
-                <button class="emotion-btn" disabled>Ira</button>
-                <button class="emotion-btn" disabled>Ansiedad</button>
-                <button class="emotion-btn" disabled>Frustración</button>
-            </div>
-            <p class="help-text">En este prototipo, solo la opción "Miedo" está habilitada.</p>
-            <button class="btn" id="start-btn">Comenzar</button>
+            <p class="help-text">Esta herramienta te guiará a través de un proceso para identificar, aceptar y reflexionar sobre tus miedos.</p>
+            
+            <button class="btn fear-btn" id="start-btn">Comenzar</button>
         </div>
         
         <!-- Pregunta 1: Identificación del miedo -->
@@ -415,7 +377,7 @@
         </div>
         
         <!-- Pregunta de reflexión con respiración -->
-        <div id="question4" class="question-container" style="display: none;">
+        <div id="question4" class="question-container">
             <div class="breath-animation">
                 <div class="circle">Respira</div>
             </div>
@@ -587,60 +549,23 @@
                 concern: "ser despedido y que mi reputación profesional quede dañada",
                 timestamp: "Ayer",
                 relateCount: 24
-            },
-            {
-                id: 7,
-                fear: "desarrollar una enfermedad terminal como mi madre",
-                concern: "sufrir dolor y ser una carga para mis seres queridos",
-                timestamp: "Hace 2 semanas",
-                relateCount: 46
-            },
-            {
-                id: 8,
-                fear: "fracasar en mi nuevo emprendimiento",
-                concern: "perder todos mis ahorros y tener que volver a empezar desde cero",
-                timestamp: "Hace 6 horas",
-                relateCount: 22
-            },
-            {
-                id: 9,
-                fear: "que mi ansiedad social empeore",
-                concern: "quedarme completamente aislado y no poder salir de casa",
-                timestamp: "Hace 1 día",
-                relateCount: 38
-            },
-            {
-                id: 10,
-                fear: "no ser un buen padre/madre para mi hijo",
-                concern: "repetir los errores que cometieron conmigo y causar traumas",
-                timestamp: "Hace 3 horas",
-                relateCount: 51
-            },
-            {
-                id: 11,
-                fear: "que algo le pase a mis padres mientras vivo lejos",
-                concern: "no poder estar presente cuando me necesiten o despedirme",
-                timestamp: "Hace 12 horas",
-                relateCount: 33
-            },
-            {
-                id: 12,
-                fear: "que descubran que no merezco mi puesto de trabajo",
-                concern: "ser expuesto como un impostor y perder todo lo que he construido",
-                timestamp: "Hace 4 días",
-                relateCount: 47
             }
         ];
         
+        // Evento para debuggear
+        console.log("Script cargado correctamente");
+        console.log("Botón comenzar:", startBtn);
+        
         // Evento para iniciar el proceso
-        startBtn.addEventListener('click', () => {
+        startBtn.addEventListener('click', function() {
+            console.log("Botón comenzar presionado");
             emotionSelection.style.display = 'none';
             question1.style.display = 'block';
             step1.classList.add('active');
         });
         
         // Eventos para navegar entre preguntas
-        next1Btn.addEventListener('click', () => {
+        next1Btn.addEventListener('click', function() {
             if (validateInput(fearIdentification)) {
                 userResponses.fear = fearIdentification.value;
                 question1.style.display = 'none';
@@ -653,7 +578,7 @@
             }
         });
         
-        next2Btn.addEventListener('click', () => {
+        next2Btn.addEventListener('click', function() {
             if (validateInput(mainConcern)) {
                 userResponses.concern = mainConcern.value;
                 question2.style.display = 'none';
@@ -693,7 +618,7 @@
             }
         });
         
-        next3Btn.addEventListener('click', () => {
+        next3Btn.addEventListener('click', function() {
             question3.style.display = 'none';
             question4.style.display = 'block';
             step3.classList.remove('active');
@@ -701,7 +626,7 @@
             step4.classList.add('active');
         });
         
-        next4Btn.addEventListener('click', () => {
+        next4Btn.addEventListener('click', function() {
             // La reflexión es opcional, pero si escribió algo lo guardamos
             userResponses.reflection = reflection.value || "No he añadido reflexiones adicionales.";
             question4.style.display = 'none';
@@ -717,209 +642,210 @@
             addUserReflectionToCommunity();
         });
         
-        viewCommunityBtn.addEventListener('click', () => {
+        viewCommunityBtn.addEventListener('click', function() {
             recommendationSection.style.display = 'none';
             loadCommunityReflections('recent'); // Cargar reflexiones con filtro inicial "recientes"
             communitySection.style.display = 'block';
         });
         
-        viewSummaryBtn.addEventListener('click', () => {
+        viewSummaryBtn.addEventListener('click', function() {
             communitySection.style.display = 'none';
             summaryContainer.style.display = 'block';
         });
         
-        // Continuación del código JavaScript
-
-saveBtn.addEventListener('click', () => {
-    saveResponses();
-});
-
-backToCommunityBtn.addEventListener('click', () => {
-    summaryContainer.style.display = 'none';
-    communitySection.style.display = 'block';
-});
-
-newReflectionBtn.addEventListener('click', () => {
-    resetSession();
-});
-
-// Agregar eventos a los filtros de la comunidad
-document.querySelectorAll('.filter-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        loadCommunityReflections(tab.dataset.filter);
-    });
-});
-
-// Función para validar que el campo no esté vacío
-function validateInput(inputElement) {
-    if (inputElement.value.trim() === '') {
-        inputElement.style.borderColor = 'red';
-        return false;
-    } else {
-        inputElement.style.borderColor = '#ddd';
-        return true;
-    }
-}
-
-// Función para actualizar el resumen
-function updateSummary() {
-    summaryFear.textContent = userResponses.fear;
-    summaryConcern.textContent = userResponses.concern;
-    summaryReflection.textContent = userResponses.reflection;
-}
-
-// Función para guardar las respuestas (en un caso real, esto enviaría datos a un servidor)
-function saveResponses() {
-    const data = {
-        timestamp: new Date().toISOString(),
-        responses: userResponses
-    };
-    
-    // En un prototipo, simplemente mostramos los datos en la consola
-    console.log('Datos guardados:', data);
-    
-    // Simulamos la descarga de un archivo de texto
-    const blob = new Blob([
-        "MI REFLEXIÓN SOBRE EL MIEDO\n\n" +
-        "Fecha: " + new Date().toLocaleDateString() + "\n\n" +
-        "Tengo miedo a...\n" + userResponses.fear + "\n\n" +
-        "Lo que más me preocupa de esto es...\n" + userResponses.concern + "\n\n" +
-        "Mis reflexiones después de identificar mi temor:\n" + userResponses.reflection + "\n\n" +
-        "---\n" +
-        "Recuerda que sentir miedo es natural, todas las personas sentimos miedo.\n" +
-        "No estás solo/a en esto y puedes volver a reflexionar cuando lo necesites."
-    ], { type: 'text/plain' });
-    
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'mi_reflexion_' + new Date().toLocaleDateString().replace(/\//g, '-') + '.txt';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    alert('Tu reflexión ha sido guardada.');
-}
-
-// Función para reiniciar la sesión
-function resetSession() {
-    // Limpiar todos los campos
-    fearIdentification.value = '';
-    mainConcern.value = '';
-    reflection.value = '';
-    
-    // Reiniciar las respuestas del usuario
-    Object.keys(userResponses).forEach(key => {
-        userResponses[key] = '';
-    });
-    
-    // Volver a la pantalla inicial
-    summaryContainer.style.display = 'none';
-    communitySection.style.display = 'none';
-    recommendationSection.style.display = 'none';
-    question4.style.display = 'none';
-    question3.style.display = 'none';
-    question2.style.display = 'none';
-    question1.style.display = 'none';
-    emotionSelection.style.display = 'block';
-    
-    // Reiniciar los indicadores de progreso
-    document.querySelectorAll('.step').forEach(step => {
-        step.classList.remove('active', 'completed');
-    });
-    step1.classList.add('active');
-}
-
-// Función para agregar la reflexión del usuario a la comunidad
-function addUserReflectionToCommunity() {
-    // En un sistema real, esto enviaría los datos al servidor
-    // Aquí simplemente simulamos agregar la reflexión del usuario al arreglo local
-    
-    const userReflection = {
-        id: communityReflections.length + 1,
-        fear: userResponses.fear,
-        concern: userResponses.concern,
-        timestamp: "Justo ahora",
-        relateCount: 0
-    };
-    
-    // Agregar al principio para que aparezca como la más reciente
-    communityReflections.unshift(userReflection);
-}
-
-// Función para cargar las reflexiones de la comunidad según el filtro seleccionado
-function loadCommunityReflections(filter) {
-    const container = document.getElementById('fear-cards-container');
-    container.innerHTML = ''; // Limpiar contenedor
-    
-    let reflectionsToShow = [...communityReflections]; // Copia del array
-    
-    // Aplicar filtros
-    switch (filter) {
-        case 'recent':
-            // Ya están ordenadas por tiempo en nuestro ejemplo
-            break;
-        case 'similar':
-            // Filtrar por similitud (simulado)
-            reflectionsToShow = reflectionsToShow.filter(item => 
-                item.fear.includes(userResponses.fear.substring(0, 5)) || 
-                userResponses.fear.includes(item.fear.substring(0, 5)) ||
-                item.concern.includes(userResponses.concern.substring(0, 5)) || 
-                userResponses.concern.includes(item.concern.substring(0, 5))
-            );
-            if (reflectionsToShow.length < 3) {
-                // Si no hay suficientes similares, agregamos algunos aleatorios
-                const randomOnes = communityReflections
-                    .filter(r => !reflectionsToShow.includes(r))
-                    .sort(() => 0.5 - Math.random())
-                    .slice(0, 5);
-                reflectionsToShow = [...reflectionsToShow, ...randomOnes];
-            }
-            break;
-        case 'popular':
-            reflectionsToShow.sort((a, b) => b.relateCount - a.relateCount);
-            break;
-        case 'random':
-            reflectionsToShow.sort(() => 0.5 - Math.random());
-            break;
-    }
-    
-    // Mostrar las reflexiones
-    reflectionsToShow.forEach(reflection => {
-        const card = document.createElement('div');
-        card.className = 'fear-card';
-        
-        card.innerHTML = `
-            <div class="fear">"${reflection.fear}"</div>
-            <div class="concern">${reflection.concern}</div>
-            <button class="relate-btn" data-id="${reflection.id}">
-                <span>Me identifico</span>
-                <span class="count">${reflection.relateCount}</span>
-            </button>
-            <div class="timestamp">${reflection.timestamp}</div>
-        `;
-        
-        container.appendChild(card);
-    });
-    
-    // Agregar eventos a los botones de "Me identifico"
-    document.querySelectorAll('.relate-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const id = parseInt(btn.dataset.id);
-            const reflection = communityReflections.find(r => r.id === id);
-            if (reflection) {
-                reflection.relateCount++;
-                btn.querySelector('.count').textContent = reflection.relateCount;
-                btn.classList.add('active');
-            }
+        saveBtn.addEventListener('click', function() {
+            saveResponses();
         });
-    });
-    
-    // Si no hay reflexiones que mostrar
-    if (reflectionsToShow.length === 0) {
-        container.innerHTML = '<p style="text-align: center; grid-column: 1/-1;">No se encontraron reflexiones similares. Intenta con otro filtro.</p>';
-    }
-}
+
+        backToCommunityBtn.addEventListener('click', function() {
+            summaryContainer.style.display = 'none';
+            communitySection.style.display = 'block';
+        });
+
+        newReflectionBtn.addEventListener('click', function() {
+            resetSession();
+        });
+
+        // Agregar eventos a los filtros de la comunidad
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                loadCommunityReflections(tab.dataset.filter);
+            });
+        });
+
+        // Función para validar que el campo no esté vacío
+        function validateInput(inputElement) {
+            if (inputElement.value.trim() === '') {
+                inputElement.style.borderColor = 'red';
+                return false;
+            } else {
+                inputElement.style.borderColor = '#ddd';
+                return true;
+            }
+        }
+
+        // Función para actualizar el resumen
+        function updateSummary() {
+            summaryFear.textContent = userResponses.fear;
+            summaryConcern.textContent = userResponses.concern;
+            summaryReflection.textContent = userResponses.reflection;
+        }
+
+        // Función para guardar las respuestas (en un caso real, esto enviaría datos a un servidor)
+        function saveResponses() {
+            const data = {
+                timestamp: new Date().toISOString(),
+                responses: userResponses
+            };
+            
+            // En un prototipo, simplemente mostramos los datos en la consola
+            console.log('Datos guardados:', data);
+            
+            // Simulamos la descarga de un archivo de texto
+            const blob = new Blob([
+                "MI REFLEXIÓN SOBRE EL MIEDO\n\n" +
+                "Fecha: " + new Date().toLocaleDateString() + "\n\n" +
+                "Tengo miedo a...\n" + userResponses.fear + "\n\n" +
+                "Lo que más me preocupa de esto es...\n" + userResponses.concern + "\n\n" +
+                "Mis reflexiones después de identificar mi temor:\n" + userResponses.reflection + "\n\n" +
+                "---\n" +
+                "Recuerda que sentir miedo es natural, todas las personas sentimos miedo.\n" +
+                "No estás solo/a en esto y puedes volver a reflexionar cuando lo necesites."
+            ], { type: 'text/plain' });
+            
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'mi_reflexion_' + new Date().toLocaleDateString().replace(/\//g, '-') + '.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+                        
+            alert('Tu reflexión ha sido guardada.');
+            }
+            
+            // Función para reiniciar la sesión
+            function resetSession() {
+                // Limpiar todos los campos
+                fearIdentification.value = '';
+                mainConcern.value = '';
+                reflection.value = '';
+                
+                // Reiniciar las respuestas del usuario
+                Object.keys(userResponses).forEach(key => {
+                    userResponses[key] = '';
+                });
+                
+                // Volver a la pantalla inicial
+                summaryContainer.style.display = 'none';
+                communitySection.style.display = 'none';
+                recommendationSection.style.display = 'none';
+                question4.style.display = 'none';
+                question3.style.display = 'none';
+                question2.style.display = 'none';
+                question1.style.display = 'none';
+                emotionSelection.style.display = 'block';
+                
+                // Reiniciar los indicadores de progreso
+                document.querySelectorAll('.step').forEach(step => {
+                    step.classList.remove('active', 'completed');
+                });
+                step1.classList.add('active');
+            }
+            
+            // Función para agregar la reflexión del usuario a la comunidad
+            function addUserReflectionToCommunity() {
+                // En un sistema real, esto enviaría los datos al servidor
+                // Aquí simplemente simulamos agregar la reflexión del usuario al arreglo local
+                
+                const userReflection = {
+                    id: communityReflections.length + 1,
+                    fear: userResponses.fear,
+                    concern: userResponses.concern,
+                    timestamp: "Justo ahora",
+                    relateCount: 0
+                };
+                
+                // Agregar al principio para que aparezca como la más reciente
+                communityReflections.unshift(userReflection);
+            }
+            
+            // Función para cargar las reflexiones de la comunidad según el filtro seleccionado
+            function loadCommunityReflections(filter) {
+                const container = document.getElementById('fear-cards-container');
+                container.innerHTML = ''; // Limpiar contenedor
+                
+                let reflectionsToShow = [...communityReflections]; // Copia del array
+                
+                // Aplicar filtros
+                switch (filter) {
+                    case 'recent':
+                        // Ya están ordenadas por tiempo en nuestro ejemplo
+                        break;
+                    case 'similar':
+                        // Filtrar por similitud (simulado)
+                        reflectionsToShow = reflectionsToShow.filter(item => 
+                            item.fear.includes(userResponses.fear.substring(0, 5)) || 
+                            userResponses.fear.includes(item.fear.substring(0, 5)) ||
+                            item.concern.includes(userResponses.concern.substring(0, 5)) || 
+                            userResponses.concern.includes(item.concern.substring(0, 5))
+                        );
+                        if (reflectionsToShow.length < 3) {
+                            // Si no hay suficientes similares, agregamos algunos aleatorios
+                            const randomOnes = communityReflections
+                                .filter(r => !reflectionsToShow.includes(r))
+                                .sort(() => 0.5 - Math.random())
+                                .slice(0, 5);
+                            reflectionsToShow = [...reflectionsToShow, ...randomOnes];
+                        }
+                        break;
+                    case 'popular':
+                        reflectionsToShow.sort((a, b) => b.relateCount - a.relateCount);
+                        break;
+                    case 'random':
+                        reflectionsToShow.sort(() => 0.5 - Math.random());
+                        break;
+                }
+                
+                // Mostrar las reflexiones
+                reflectionsToShow.forEach(reflection => {
+                    const card = document.createElement('div');
+                    card.className = 'fear-card';
+                    
+                    card.innerHTML = `
+                        <div class="fear">"${reflection.fear}"</div>
+                        <div class="concern">${reflection.concern}</div>
+                        <button class="relate-btn" data-id="${reflection.id}">
+                            <span>Me identifico</span>
+                            <span class="count">${reflection.relateCount}</span>
+                        </button>
+                        <div class="timestamp">${reflection.timestamp}</div>
+                    `;
+                    
+                    container.appendChild(card);
+                });
+                
+                // Agregar eventos a los botones de "Me identifico"
+                document.querySelectorAll('.relate-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const id = parseInt(btn.dataset.id);
+                        const reflection = communityReflections.find(r => r.id === id);
+                        if (reflection) {
+                            reflection.relateCount++;
+                            btn.querySelector('.count').textContent = reflection.relateCount;
+                            btn.classList.add('active');
+                        }
+                    });
+                });
+                
+                // Si no hay reflexiones que mostrar
+                if (reflectionsToShow.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; grid-column: 1/-1;">No se encontraron reflexiones similares. Intenta con otro filtro.</p>';
+                }
+            }
+            </script>
+</body>
+</html>
