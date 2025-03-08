@@ -1,711 +1,925 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Mind Orbit - Emotional Cosmic Survival</title>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión Emocional - Prototipo</title>
     <style>
         body {
-            margin: 0;
-            padding: 0;
-            background: #000;
-            font-family: 'Arial', sans-serif;
-            overflow: hidden;
-            color: #fff;
-        }
-        #gameCanvas {
-            display: block;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
             margin: 0 auto;
-            background: #000;
+            padding: 20px;
+            background-color: #f9f9f9;
         }
-        #loading-screen {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: black;
-            color: #0f0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        #tagline {
-            font-size: 24px;
-            color: #0ff;
-            margin-bottom: 20px;
+        h1 {
+            color: #2c3e50;
             text-align: center;
-            text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+            margin-bottom: 30px;
         }
-        #username-input {
-            padding: 10px;
-            margin: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid #0ff;
-            color: white;
-            font-size: 18px;
-            outline: none;
+        .emotion-selector {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
         }
-        #start-btn {
-            padding: 10px 20px;
-            margin: 10px;
-            background: #0ff;
-            color: black;
+        .emotion-btn {
+            padding: 12px 20px;
             border: none;
-            font-size: 18px;
+            border-radius: 25px;
+            background-color: #e0e0e0;
+            color: #333;
+            font-size: 16px;
             cursor: pointer;
             transition: all 0.3s;
         }
-        #start-btn:hover {
-            background: #0aa;
-            transform: scale(1.05);
+        .emotion-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
-        #chat-container {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            width: 250px;
-            height: 150px;
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid #0ff;
-            display: none;
-        }
-        #chat-messages {
-            height: 120px;
-            overflow-y: auto;
-            padding: 5px;
-        }
-        .chat-message {
-            margin: 3px 0;
-            font-size: 12px;
-            color: #fff;
-        }
-        #chat-buttons {
-            display: flex;
-            justify-content: space-around;
-        }
-        .chat-btn {
-            flex: 1;
-            padding: 3px;
-            margin: 2px;
-            background: rgba(0, 255, 255, 0.3);
-            border: none;
+        .emotion-btn.active {
+            background-color: #3498db;
             color: white;
-            font-size: 10px;
-            cursor: pointer;
         }
-        #game-over {
+        .fear-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .question-container {
+            display: none;
+            margin-top: 20px;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 16px;
+            min-height: 80px;
+        }
+        .help-text {
+            color: #7f8c8d;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            margin: 20px auto;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .recommendation-section {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f1f9ff;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        .recommendations p {
+            margin-bottom: 15px;
+            line-height: 1.8;
+        }
+        .progress-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        .progress-indicator:before {
+            content: '';
             position: absolute;
-            top: 0;
+            top: 15px;
             left: 0;
             width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-            flex-direction: column;
-            justify-content: center;
+            height: 2px;
+            background-color: #e0e0e0;
+            z-index: 1;
+        }
+        .step {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: #e0e0e0;
+            display: flex;
             align-items: center;
-        }
-        #game-over h1 {
-            color: #ff0000;
-            font-size: 48px;
-            margin-bottom: 20px;
-        }
-        #game-over p {
+            justify-content: center;
+            font-weight: bold;
             color: #fff;
-            font-size: 24px;
-            margin: 10px 0;
-            text-align: center;
+            position: relative;
+            z-index: 2;
         }
-        #restart-btn {
-            padding: 10px 20px;
+        .step.active {
+            background-color: #3498db;
+        }
+        .step.completed {
+            background-color: #2ecc71;
+        }
+        .summary-container {
+            display: none;
+            margin-top: 30px;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        .summary-item {
+            margin-bottom: 15px;
+        }
+        .summary-question {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .summary-answer {
+            background-color: white;
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 3px solid #3498db;
+            margin-top: 5px;
+        }
+        .action-buttons {
+            display: flex;
+            justify-content: space-between;
             margin-top: 20px;
-            background: #00ff00;
-            color: black;
-            border: none;
-            font-size: 18px;
+        }
+        .save-btn {
+            background-color: #2ecc71;
+        }
+        .new-session-btn {
+            background-color: #e74c3c;
+        }
+        .breath-animation {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            position: relative;
+        }
+        .circle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background-color: rgba(52, 152, 219, 0.2);
+            margin: 0 auto;
+            animation: breathing 5s infinite ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        @keyframes breathing {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.4); }
+            100% { transform: scale(1); }
+        }
+        
+        /* Estilos para la comunidad de reflexiones */
+        .community-section {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            animation: fadeIn 0.8s;
+        }
+        .community-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .community-intro {
+            max-width: 600px;
+            margin: 0 auto 25px;
+            color: #555;
+            text-align: center;
+            line-height: 1.7;
+        }
+        .fear-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+            max-height: 450px;
+            overflow-y: auto;
+            padding: 10px 5px;
+        }
+        .fear-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+            position: relative;
+        }
+        .fear-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        .fear-card .fear {
+            font-weight: 600;
+            color: #e74c3c;
+            margin-bottom: 10px;
+        }
+        .fear-card .concern {
+            color: #555;
+            font-size: 0.95em;
+        }
+        .fear-card .timestamp {
+            font-size: 0.75em;
+            color: #999;
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+        }
+        .relate-btn {
+            background-color: transparent;
+            border: 1px solid #3498db;
+            color: #3498db;
+            font-size: 0.8em;
+            padding: 5px 10px;
+            border-radius: 15px;
             cursor: pointer;
+            margin-top: 15px;
+            display: inline-flex;
+            align-items: center;
+            transition: all 0.2s;
+        }
+        .relate-btn:hover {
+            background-color: #3498db;
+            color: white;
+        }
+        .relate-btn .count {
+            margin-left: 5px;
+            font-weight: 600;
+        }
+        .filter-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .filter-tab {
+            padding: 8px 15px;
+            background-color: #f1f1f1;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .filter-tab.active {
+            background-color: #3498db;
+            color: white;
+        }
+        .filter-tab:hover:not(.active) {
+            background-color: #e0e0e0;
+        }
+        .community-message {
+            text-align: center;
+            margin: 25px 0;
+            font-style: italic;
+            color: #666;
+        }
+        
+        /* Notificación de privacidad */
+        .privacy-notice {
+            background-color: rgba(52, 152, 219, 0.1);
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .privacy-notice i {
+            color: #3498db;
+            font-size: 1.2em;
+        }
+        
+        /* Para iconos */
+        .material-icons {
+            font-family: 'Material Icons';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -moz-font-feature-settings: 'liga';
+            -moz-osx-font-smoothing: grayscale;
         }
     </style>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
-    <div id="loading-screen">
-        <h1>MIND ORBIT</h1>
-        <div id="tagline">Sobrevive tus emociones en un caos cósmico.<br>Patrocinado por [Marca]</div>
-        <input id="username-input" type="text" placeholder="Tu nombre (max 10 caracteres)" maxlength="10">
-        <button id="start-btn">¡COMENZAR!</button>
-    </div>
-    
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-    
-    <div id="chat-container">
-        <div id="chat-messages"></div>
-        <div id="chat-buttons">
-            <button class="chat-btn" data-message="¡Casi!">¡Casi!</button>
-            <button class="chat-btn" data-message="¡Boom!">¡Boom!</button>
-            <button class="chat-btn" data-message="¡Suerte!">¡Suerte!</button>
-            <button class="chat-btn" data-message="¡Ayuda!">¡Ayuda!</button>
+    <div class="container">
+        <h1>Gestión Emocional</h1>
+        
+        <div class="progress-indicator">
+            <div class="step active" id="step1">1</div>
+            <div class="step" id="step2">2</div>
+            <div class="step" id="step3">3</div>
+            <div class="step" id="step4">4</div>
+            <div class="step" id="step5">5</div>
+        </div>
+        
+        <!-- Selector de emociones -->
+        <div id="emotion-selection">
+            <h2>¿Qué estás sintiendo ahora?</h2>
+            
+            <div class="privacy-notice">
+                <i class="material-icons">info</i>
+                <div>
+                    <strong>Nota de privacidad:</strong> Todas las reflexiones son anónimas y se comparten con la comunidad para que nadie se sienta solo en su proceso.
+                </div>
+            </div>
+            
+            <div class="emotion-selector">
+                <button class="emotion-btn fear-btn active">Miedo</button>
+                <button class="emotion-btn" disabled>Tristeza</button>
+                <button class="emotion-btn" disabled>Ira</button>
+                <button class="emotion-btn" disabled>Ansiedad</button>
+                <button class="emotion-btn" disabled>Frustración</button>
+            </div>
+            <p class="help-text">En este prototipo, solo la opción "Miedo" está habilitada.</p>
+            <button class="btn" id="start-btn">Comenzar</button>
+        </div>
+        
+        <!-- Pregunta 1: Identificación del miedo -->
+        <div id="question1" class="question-container">
+            <label for="fear-identification">Tengo miedo a...</label>
+            <p class="help-text">Tómate un momento para ser honesto(a) contigo mismo(a) y responder a esta pregunta: ¿cuál es mi mayor temor en este momento?</p>
+            <p class="help-text"><em>Escribe lo primero que venga a tu mente, no hay respuestas incorrectas.</em></p>
+            <textarea id="fear-identification" placeholder="Por ejemplo: quedarme solo para siempre, fracasar en mi proyecto, que nunca más pueda ver a mi hijo, que mi hermano se haga daño..."></textarea>
+            <button class="btn" id="next1-btn">Siguiente</button>
+        </div>
+        
+        <!-- Pregunta 2: Preocupación principal -->
+        <div id="question2" class="question-container">
+            <label for="main-concern">Lo que más me preocupa de esto es...</label>
+            <p class="help-text">Piensa en qué hace que este miedo sea tan grande para ti. ¿Qué temes que ocurra si pasara?</p>
+            <p class="help-text" id="fear-reminder" style="font-style: italic; color: #3498db;"></p>
+            <p class="help-text"><em>No te preocupes por solucionarlo, solo escríbelo.</em></p>
+            <textarea id="main-concern" placeholder="Por ejemplo: no poder hacer nada al respecto, sentirme culpable, perder mi estabilidad, sentir que jamás podré cambiar, que no tenga solución"></textarea>
+            <button class="btn" id="next2-btn">Siguiente</button>
+        </div>
+        
+        <!-- Paso de aceptación -->
+        <div id="question3" class="question-container">
+            <h3>Has dado un paso importante: aceptar aquello que realmente temes</h3>
+            <p>Aceptar que algo nos da miedo a veces puede ser vergonzoso, o puede llevarnos a criticarnos, por que no sabemos si está bien sentirnos así o pensar eso, pero...</p>
+            <p>Reconocer que nos da miedo, nos ayuda a procesar nuestras emociones. Verbalizar nuestros temores es la forma más efectiva para gestionarlos...</p>
+            <p id="fear-acceptance-text">Aunque sea difícil aceptar, has reconocido un temor importante para ti.</p>
+            <p>Y tenerle miedo a eso no te hace menos...</p>
+            <button class="btn" id="next3-btn">Qué hacer ahora</button>
+        </div>
+        
+        <!-- Pregunta de reflexión con respiración -->
+        <div id="question4" class="question-container" style="display: none;">
+            <div class="breath-animation">
+                <div class="circle">Respira</div>
+            </div>
+            <label for="reflection">Ahora, respira.</label>
+            <p class="help-text">Y, reflexiona sobre lo que sientes al haber identificado tu temor...</p>
+            <p class="help-text"><em>¿Qué surge ahora que has puesto en palabras tu miedo? No hay prisa, escribe lo que quieras.</em></p>
+            <textarea id="reflection" placeholder="Por ejemplo: me siento un poco más liviano, noto que me estaba juzgando, veo que esto tiene solución, me doy cuenta que necesito apoyo..."></textarea>
+            <button class="btn" id="next4-btn">Siguiente</button>
+        </div>
+        
+        <!-- Recomendaciones -->
+        <div id="recommendation-section" class="recommendation-section">
+            <h3>Sobre tu proceso</h3>
+            <div class="recommendations">
+                <p>Recuerda que sentir miedo es natural, todas las personas sentimos miedo, no siempre elegimos a qué le tenemos miedo, nuestro cuerpo y mente generan ese temor automáticamente.</p>
+                
+                <p>Lo que podemos hacer es aceptarlo... y, de ser posible, gestionarlo.</p>
+                
+                <p>Para gestionarlo, puedes probar el ejercicio de gestión del miedo inspirado en Tim Ferriss: imagina qué pasaría si tu miedo se hace realidad, qué podrías hacer para manejarlo y cómo podrías reconstruirte después.</p>
+                
+                <p>Aquí tienes su charla para profundizar:</p>
+                <a href="https://www.ted.com/talks/tim_ferriss_why_you_should_define_your_fears_instead_of_your_goals" target="_blank" class="btn">Ver charla TED</a>
+                
+                <p>No hay prisa. Puedes volver a este espacio cuando lo necesites.</p>
+            </div>
+            <button id="view-community-btn" class="btn">Ver reflexiones de la comunidad</button>
+        </div>
+        
+        <!-- Comunidad de reflexiones -->
+        <div id="community-section" class="community-section">
+            <div class="community-header">
+                <h3>Comunidad de reflexiones</h3>
+                <p class="community-intro">No estás solo/a. Otras personas también están procesando sus miedos. 
+                Todas las reflexiones son anónimas y se comparten para crear comunidad.</p>
+            </div>
+            
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="recent">Más recientes</button>
+                <button class="filter-tab" data-filter="similar">Similares al mío</button>
+                <button class="filter-tab" data-filter="popular">Más resonantes</button>
+                <button class="filter-tab" data-filter="random">Aleatorios</button>
+            </div>
+            
+            <div class="fear-cards" id="fear-cards-container">
+                <!-- Las tarjetas se cargarán dinámicamente -->
+            </div>
+            
+            <p class="community-message">Tu reflexión ya forma parte de esta comunidad, ayudando a otros a sentirse menos solos.</p>
+            
+            <div class="action-buttons">
+                <button id="view-summary-btn" class="btn">Ver mi reflexión</button>
+                <button id="new-reflection-btn" class="btn">Nueva reflexión</button>
+            </div>
+        </div>
+        
+        <!-- Resumen de respuestas -->
+        <div id="summary-container" class="summary-container">
+            <h3>Resumen de tu reflexión</h3>
+            
+            <div class="summary-item">
+                <div class="summary-question">Tengo miedo a...</div>
+                <div class="summary-answer" id="summary-fear"></div>
+            </div>
+            
+            <div class="summary-item">
+                <div class="summary-question">Lo que más me preocupa de esto es...</div>
+                <div class="summary-answer" id="summary-concern"></div>
+            </div>
+            
+            <div class="summary-item">
+                <div class="summary-question">Mis reflexiones después de identificar mi temor:</div>
+                <div class="summary-answer" id="summary-reflection"></div>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn save-btn" id="save-btn">Guardar mi reflexión</button>
+                <button class="btn" id="back-to-community-btn">Volver a la comunidad</button>
+            </div>
         </div>
     </div>
 
-    <div id="game-over">
-        <h1>GAME OVER</h1>
-        <p id="final-score">Puntuación Final: 0</p>
-        <p id="time-survived">Tiempo Sobrevivido: 0 segundos</p>
-        <p>Top 5: 1. NelsonP - 500 | 2. GrokFan - 450 | 3. StarGirl - 400 | 4. OrbitKing - 350 | 5. MindWave - 300</p>
-        <button id="restart-btn">JUGAR DE NUEVO</button>
-    </div>
-
     <script>
-        let canvas, ctx;
-        let username = 'Jugador';
-        let gameStarted = false;
-        let gameOver = false;
-        let score = 0; // Ahora lo gestionamos mejor
-        let baseScore = 0; // Puntuación base antes del multiplicador
-        let timeSurvived = 0;
-        let stability = 100;
-        let gameTime = 0;
+        // Variables para almacenar las respuestas
+        const userResponses = {
+            fear: '',
+            concern: '',
+            reflection: ''
+        };
         
-        let ship = { x: 100, y: 300, width: 20, height: 20, velocity: 0 };
-        let planets = [];
-        let energies = [];
-        let stars = [];
-        let otherPlayers = [];
+        // Elementos del DOM
+        const emotionSelection = document.getElementById('emotion-selection');
+        const question1 = document.getElementById('question1');
+        const question2 = document.getElementById('question2');
+        const question3 = document.getElementById('question3');
+        const question4 = document.getElementById('question4');
+        const recommendationSection = document.getElementById('recommendation-section');
+        const communitySection = document.getElementById('community-section');
+        const summaryContainer = document.getElementById('summary-container');
         
-        const planetTypes = [
-            { name: 'anger', color: '#ff0000', shape: 'rectangle', damage: 15 },
-            { name: 'fear', color: '#9932cc', shape: 'circle', damage: 10 },
-            { name: 'joy', color: '#ffff00', shape: 'star', damage: 5 }
+        // Botones
+        const startBtn = document.getElementById('start-btn');
+        const next1Btn = document.getElementById('next1-btn');
+        const next2Btn = document.getElementById('next2-btn');
+        const next3Btn = document.getElementById('next3-btn');
+        const next4Btn = document.getElementById('next4-btn');
+        const viewCommunityBtn = document.getElementById('view-community-btn');
+        const viewSummaryBtn = document.getElementById('view-summary-btn');
+        const saveBtn = document.getElementById('save-btn');
+        const newReflectionBtn = document.getElementById('new-reflection-btn');
+        const backToCommunityBtn = document.getElementById('back-to-community-btn');
+        
+        // Inputs
+        const fearIdentification = document.getElementById('fear-identification');
+        const mainConcern = document.getElementById('main-concern');
+        const reflection = document.getElementById('reflection');
+        
+        // Elementos de resumen
+        const summaryFear = document.getElementById('summary-fear');
+        const summaryConcern = document.getElementById('summary-concern');
+        const summaryReflection = document.getElementById('summary-reflection');
+        
+        // Indicadores de progreso
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
+        const step4 = document.getElementById('step4');
+        const step5 = document.getElementById('step5');
+        
+        // Base de datos simulada de reflexiones de la comunidad
+        const communityReflections = [
+            {
+                id: 1,
+                fear: "que mis hijos sufran algún accidente cuando no estoy con ellos",
+                concern: "no estar ahí para protegerlos en un momento crítico",
+                timestamp: "Hace 2 días",
+                relateCount: 42
+            },
+            {
+                id: 2,
+                fear: "perder mi trabajo sin tener ahorros suficientes",
+                concern: "no poder mantener a mi familia y quedar en la calle",
+                timestamp: "Hace 4 horas",
+                relateCount: 28
+            },
+            {
+                id: 3,
+                fear: "nunca encontrar una pareja que realmente me ame",
+                concern: "envejecer solo y sin nadie que me acompañe",
+                timestamp: "Hace 1 semana",
+                relateCount: 35
+            },
+            {
+                id: 4,
+                fear: "que mi padre desarrolle Alzheimer como mi abuelo",
+                concern: "no poder hacer nada mientras olvida quién soy",
+                timestamp: "Hace 3 días",
+                relateCount: 19
+            },
+            {
+                id: 5,
+                fear: "no ser capaz de pagar mi hipoteca",
+                concern: "perder mi casa y decepcionar a mi familia",
+                timestamp: "Hace 5 días",
+                relateCount: 31
+            },
+            {
+                id: 6,
+                fear: "cometer un error grave en mi trabajo",
+                concern: "ser despedido y que mi reputación profesional quede dañada",
+                timestamp: "Ayer",
+                relateCount: 24
+            },
+            {
+                id: 7,
+                fear: "desarrollar una enfermedad terminal como mi madre",
+                concern: "sufrir dolor y ser una carga para mis seres queridos",
+                timestamp: "Hace 2 semanas",
+                relateCount: 46
+            },
+            {
+                id: 8,
+                fear: "fracasar en mi nuevo emprendimiento",
+                concern: "perder todos mis ahorros y tener que volver a empezar desde cero",
+                timestamp: "Hace 6 horas",
+                relateCount: 22
+            },
+            {
+                id: 9,
+                fear: "que mi ansiedad social empeore",
+                concern: "quedarme completamente aislado y no poder salir de casa",
+                timestamp: "Hace 1 día",
+                relateCount: 38
+            },
+            {
+                id: 10,
+                fear: "no ser un buen padre/madre para mi hijo",
+                concern: "repetir los errores que cometieron conmigo y causar traumas",
+                timestamp: "Hace 3 horas",
+                relateCount: 51
+            },
+            {
+                id: 11,
+                fear: "que algo le pase a mis padres mientras vivo lejos",
+                concern: "no poder estar presente cuando me necesiten o despedirme",
+                timestamp: "Hace 12 horas",
+                relateCount: 33
+            },
+            {
+                id: 12,
+                fear: "que descubran que no merezco mi puesto de trabajo",
+                concern: "ser expuesto como un impostor y perder todo lo que he construido",
+                timestamp: "Hace 4 días",
+                relateCount: 47
+            }
         ];
         
-        const eventTypes = [
-            { name: 'memeRain', text: '¡Lluvia de memes! by TikTok', duration: 3000 },
-            { name: 'cosmicScream', text: '¡AHHHHH! by Monster', duration: 1500 },
-            { name: 'dramaPlanet', text: '¡No eres suficiente! by Netflix', duration: 4000 }
-        ];
-        
-        let activeEvent = null;
-        let eventTimer = 0;
-        let nextEventTime = 15000;
-        let message = '';
-        let messageTimer = 0;
-        
-        let lastTime = 0;
-        let animationId;
-        
-        const playerNames = ['NelsonP', 'GrokFan', 'EmoDancer', 'CosmicJohn', 'StarGirl', 'NebulaX', 'OrbitKing', 'MindWave'];
-        
-        document.getElementById('start-btn').addEventListener('click', function() {
-            username = document.getElementById('username-input').value.trim() || 'Jugador';
-            document.getElementById('loading-screen').style.display = 'none';
-            document.getElementById('chat-container').style.display = 'block';
-            gameStarted = true;
-            initGame();
+        // Evento para iniciar el proceso
+        startBtn.addEventListener('click', () => {
+            emotionSelection.style.display = 'none';
+            question1.style.display = 'block';
+            step1.classList.add('active');
         });
         
-        document.querySelectorAll('.chat-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                if (gameStarted) addChatMessage(username + ': ' + this.dataset.message);
-            });
+        // Eventos para navegar entre preguntas
+        next1Btn.addEventListener('click', () => {
+            if (validateInput(fearIdentification)) {
+                userResponses.fear = fearIdentification.value;
+                question1.style.display = 'none';
+                question2.style.display = 'block';
+                // Mostrar el miedo que escribió en la segunda pregunta
+                document.getElementById('fear-reminder').textContent = "Hablando de tu temor a: " + userResponses.fear;
+                step1.classList.remove('active');
+                step1.classList.add('completed');
+                step2.classList.add('active');
+            }
         });
         
-        document.getElementById('restart-btn').addEventListener('click', function() {
-            document.getElementById('game-over').style.display = 'none';
-            gameOver = false;
-            stability = 100;
-            score = 0;
-            baseScore = 0; // Reiniciamos baseScore
-            timeSurvived = 0;
-            gameTime = 0;
-            planets = [];
-            energies = [];
-            initGame();
+        next2Btn.addEventListener('click', () => {
+            if (validateInput(mainConcern)) {
+                userResponses.concern = mainConcern.value;
+                question2.style.display = 'none';
+                question3.style.display = 'block';
+                
+                // Actualizar el texto de aceptación del miedo para que sea más natural según las respuestas
+                const fearAcceptanceText = document.getElementById('fear-acceptance-text');
+                let acceptanceText = '';
+                
+                // Verificar si las respuestas son preguntas o frases completas
+                const fearIsSentence = userResponses.fear.trim().endsWith('?') || 
+                                      userResponses.fear.trim().endsWith('.') ||
+                                      userResponses.fear.length > 30;
+                                      
+                const concernIsSentence = userResponses.concern.trim().endsWith('?') || 
+                                         userResponses.concern.trim().endsWith('.') ||
+                                         userResponses.concern.length > 30;
+                
+                if (fearIsSentence && concernIsSentence) {
+                    acceptanceText = `Aunque sea difícil aceptar, la verdad es que ahora mismo:<br>
+                                    <span style="font-weight: bold; color: #3498db; display: block; margin: 10px 0;">
+                                    • Te preocupa ${userResponses.fear}<br>
+                                    • Y temes ${userResponses.concern}
+                                    </span>`;
+                } else {
+                    acceptanceText = `Aunque sea difícil aceptar, la verdad es que ahora mismo sientes temor a 
+                                    <span style="font-weight: bold; color: #3498db;">${userResponses.fear}</span> 
+                                    y te preocupa que 
+                                    <span style="font-weight: bold; color: #3498db;">${userResponses.concern}</span>...`;
+                }
+                
+                fearAcceptanceText.innerHTML = acceptanceText;
+                
+                step2.classList.remove('active');
+                step2.classList.add('completed');
+                step3.classList.add('active');
+            }
         });
         
-        function addChatMessage(message) {
-            const chatMessages = document.getElementById('chat-messages');
-            const messageElement = document.createElement('div');
-            messageElement.className = 'chat-message';
-            messageElement.textContent = message;
-            chatMessages.appendChild(messageElement);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-            if (chatMessages.children.length > 10) chatMessages.removeChild(chatMessages.children[0]);
-        }
+        next3Btn.addEventListener('click', () => {
+            question3.style.display = 'none';
+            question4.style.display = 'block';
+            step3.classList.remove('active');
+            step3.classList.add('completed');
+            step4.classList.add('active');
+        });
         
-        function initGame() {
-            canvas = document.getElementById('gameCanvas');
-            ctx = canvas.getContext('2d');
-            ship.y = canvas.height / 2;
-            ship.velocity = 0;
-            stars = [];
-            otherPlayers = [];
-            createStars();
-            createPlanets();
-            createEnergies();
-            createOtherPlayers();
-            addChatMessage('Sistema: ¡Bienvenido a Mind Orbit, ' + username + '!');
-            document.addEventListener('keydown', handleKeyDown);
-            canvas.addEventListener('click', handleClick);
-            lastTime = performance.now();
-            gameLoop();
-        }
+        next4Btn.addEventListener('click', () => {
+            // La reflexión es opcional, pero si escribió algo lo guardamos
+            userResponses.reflection = reflection.value || "No he añadido reflexiones adicionales.";
+            question4.style.display = 'none';
+            recommendationSection.style.display = 'block';
+            step4.classList.remove('active');
+            step4.classList.add('completed');
+            step5.classList.add('active');
+            
+            // Actualizar el resumen con las respuestas del usuario
+            updateSummary();
+            
+            // Agregar la reflexión del usuario a la "base de datos"
+            addUserReflectionToCommunity();
+        });
         
-        function createStars() {
-            for (let i = 0; i < 50; i++) {
-                stars.push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    radius: Math.random() * 1.5 + 0.5,
-                    alpha: Math.random() * 0.7 + 0.3,
-                    twinkle: Math.random() < 0.3,
-                    twinkleSpeed: Math.random() * 0.01 + 0.005
-                });
-            }
-        }
+        viewCommunityBtn.addEventListener('click', () => {
+            recommendationSection.style.display = 'none';
+            loadCommunityReflections('recent'); // Cargar reflexiones con filtro inicial "recientes"
+            communitySection.style.display = 'block';
+        });
         
-        function createPlanets() {
-            for (let i = 0; i < 3; i++) {
-                createPlanet();
-            }
-        }
+        viewSummaryBtn.addEventListener('click', () => {
+            communitySection.style.display = 'none';
+            summaryContainer.style.display = 'block';
+        });
         
-        function createPlanet() {
-            const type = planetTypes[Math.floor(Math.random() * planetTypes.length)];
-            planets.push({
-                x: canvas.width + Math.random() * 400,
-                y: 100 + Math.random() * (canvas.height - 200),
-                radius: 20 + Math.random() * 20,
-                width: 40 + Math.random() * 30,
-                height: 40 + Math.random() * 30,
-                speed: 1 + Math.random() * 1.5,
-                type: type,
-                rotation: 0,
-                rotationSpeed: (Math.random() - 0.5) * 0.02,
-                passed: false // Para detectar si fue esquivado
-            });
-        }
-        
-        function createEnergies() {
-            for (let i = 0; i < 3; i++) {
-                createEnergy();
-            }
-        }
-        
-        function createEnergy() {
-            energies.push({
-                x: canvas.width + Math.random() * 300,
-                y: 100 + Math.random() * (canvas.height - 200),
-                radius: 8,
-                speed: 1.5 + Math.random() * 1,
-                value: 5,
-                glow: 0.6
-            });
-        }
-        
-        function createOtherPlayers() {
-            for (let i = 0; i < 5; i++) {
-                otherPlayers.push({
-                    id: 'player_' + i,
-                    name: playerNames[Math.floor(Math.random() * playerNames.length)] + i,
-                    x: Math.random() * canvas.width,
-                    y: 100 + Math.random() * (canvas.height - 200),
-                    stability: 20 + Math.random() * 80,
-                    explosion: false,
-                    explosionTime: 0
-                });
-            }
-        }
-        
-        function handleKeyDown(e) {
-            if (e.code === 'Space') stabilizeShip();
-        }
-        
-        function handleClick() {
-            stabilizeShip();
-        }
-        
-        function stabilizeShip() {
-            if (!gameOver) ship.velocity = -6;
-        }
-        
-        function gameLoop(timestamp) {
-            const deltaTime = timestamp - lastTime;
-            lastTime = timestamp;
-            gameTime += deltaTime;
-            update(deltaTime);
-            render();
-            if (!gameOver) animationId = requestAnimationFrame(gameLoop);
-        }
-        
-        function update(deltaTime) {
-            timeSurvived = Math.floor(gameTime / 1000);
-            // Nuevo cálculo de puntuación base
-            baseScore = timeSurvived * 10; // 10 puntos por segundo
-            const stabilityMultiplier = 0.5 + (stability / 100); // 0.5x a 1.5x
-            score = Math.floor(baseScore * stabilityMultiplier); // Puntuación final
+        // Continuación del código JavaScript
 
-            ship.velocity += 0.2;
-            ship.y += ship.velocity;
-            if (ship.y < 20) ship.y = 20;
-            if (ship.y > canvas.height - 20) ship.y = canvas.height - 20;
-            updatePlanets();
-            updateEnergies();
-            updateOtherPlayers();
-            checkCollisions();
-            stability -= 0.005;
-            if (stability > 100) stability = 100;
-            if (stability <= 0) {
-                stability = 0;
-                gameOver = true;
-                showGameOver();
+saveBtn.addEventListener('click', () => {
+    saveResponses();
+});
+
+backToCommunityBtn.addEventListener('click', () => {
+    summaryContainer.style.display = 'none';
+    communitySection.style.display = 'block';
+});
+
+newReflectionBtn.addEventListener('click', () => {
+    resetSession();
+});
+
+// Agregar eventos a los filtros de la comunidad
+document.querySelectorAll('.filter-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        loadCommunityReflections(tab.dataset.filter);
+    });
+});
+
+// Función para validar que el campo no esté vacío
+function validateInput(inputElement) {
+    if (inputElement.value.trim() === '') {
+        inputElement.style.borderColor = 'red';
+        return false;
+    } else {
+        inputElement.style.borderColor = '#ddd';
+        return true;
+    }
+}
+
+// Función para actualizar el resumen
+function updateSummary() {
+    summaryFear.textContent = userResponses.fear;
+    summaryConcern.textContent = userResponses.concern;
+    summaryReflection.textContent = userResponses.reflection;
+}
+
+// Función para guardar las respuestas (en un caso real, esto enviaría datos a un servidor)
+function saveResponses() {
+    const data = {
+        timestamp: new Date().toISOString(),
+        responses: userResponses
+    };
+    
+    // En un prototipo, simplemente mostramos los datos en la consola
+    console.log('Datos guardados:', data);
+    
+    // Simulamos la descarga de un archivo de texto
+    const blob = new Blob([
+        "MI REFLEXIÓN SOBRE EL MIEDO\n\n" +
+        "Fecha: " + new Date().toLocaleDateString() + "\n\n" +
+        "Tengo miedo a...\n" + userResponses.fear + "\n\n" +
+        "Lo que más me preocupa de esto es...\n" + userResponses.concern + "\n\n" +
+        "Mis reflexiones después de identificar mi temor:\n" + userResponses.reflection + "\n\n" +
+        "---\n" +
+        "Recuerda que sentir miedo es natural, todas las personas sentimos miedo.\n" +
+        "No estás solo/a en esto y puedes volver a reflexionar cuando lo necesites."
+    ], { type: 'text/plain' });
+    
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'mi_reflexion_' + new Date().toLocaleDateString().replace(/\//g, '-') + '.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    alert('Tu reflexión ha sido guardada.');
+}
+
+// Función para reiniciar la sesión
+function resetSession() {
+    // Limpiar todos los campos
+    fearIdentification.value = '';
+    mainConcern.value = '';
+    reflection.value = '';
+    
+    // Reiniciar las respuestas del usuario
+    Object.keys(userResponses).forEach(key => {
+        userResponses[key] = '';
+    });
+    
+    // Volver a la pantalla inicial
+    summaryContainer.style.display = 'none';
+    communitySection.style.display = 'none';
+    recommendationSection.style.display = 'none';
+    question4.style.display = 'none';
+    question3.style.display = 'none';
+    question2.style.display = 'none';
+    question1.style.display = 'none';
+    emotionSelection.style.display = 'block';
+    
+    // Reiniciar los indicadores de progreso
+    document.querySelectorAll('.step').forEach(step => {
+        step.classList.remove('active', 'completed');
+    });
+    step1.classList.add('active');
+}
+
+// Función para agregar la reflexión del usuario a la comunidad
+function addUserReflectionToCommunity() {
+    // En un sistema real, esto enviaría los datos al servidor
+    // Aquí simplemente simulamos agregar la reflexión del usuario al arreglo local
+    
+    const userReflection = {
+        id: communityReflections.length + 1,
+        fear: userResponses.fear,
+        concern: userResponses.concern,
+        timestamp: "Justo ahora",
+        relateCount: 0
+    };
+    
+    // Agregar al principio para que aparezca como la más reciente
+    communityReflections.unshift(userReflection);
+}
+
+// Función para cargar las reflexiones de la comunidad según el filtro seleccionado
+function loadCommunityReflections(filter) {
+    const container = document.getElementById('fear-cards-container');
+    container.innerHTML = ''; // Limpiar contenedor
+    
+    let reflectionsToShow = [...communityReflections]; // Copia del array
+    
+    // Aplicar filtros
+    switch (filter) {
+        case 'recent':
+            // Ya están ordenadas por tiempo en nuestro ejemplo
+            break;
+        case 'similar':
+            // Filtrar por similitud (simulado)
+            reflectionsToShow = reflectionsToShow.filter(item => 
+                item.fear.includes(userResponses.fear.substring(0, 5)) || 
+                userResponses.fear.includes(item.fear.substring(0, 5)) ||
+                item.concern.includes(userResponses.concern.substring(0, 5)) || 
+                userResponses.concern.includes(item.concern.substring(0, 5))
+            );
+            if (reflectionsToShow.length < 3) {
+                // Si no hay suficientes similares, agregamos algunos aleatorios
+                const randomOnes = communityReflections
+                    .filter(r => !reflectionsToShow.includes(r))
+                    .sort(() => 0.5 - Math.random())
+                    .slice(0, 5);
+                reflectionsToShow = [...reflectionsToShow, ...randomOnes];
             }
-            if (messageTimer > 0) {
-                messageTimer -= deltaTime;
-                if (messageTimer <= 0) message = '';
+            break;
+        case 'popular':
+            reflectionsToShow.sort((a, b) => b.relateCount - a.relateCount);
+            break;
+        case 'random':
+            reflectionsToShow.sort(() => 0.5 - Math.random());
+            break;
+    }
+    
+    // Mostrar las reflexiones
+    reflectionsToShow.forEach(reflection => {
+        const card = document.createElement('div');
+        card.className = 'fear-card';
+        
+        card.innerHTML = `
+            <div class="fear">"${reflection.fear}"</div>
+            <div class="concern">${reflection.concern}</div>
+            <button class="relate-btn" data-id="${reflection.id}">
+                <span>Me identifico</span>
+                <span class="count">${reflection.relateCount}</span>
+            </button>
+            <div class="timestamp">${reflection.timestamp}</div>
+        `;
+        
+        container.appendChild(card);
+    });
+    
+    // Agregar eventos a los botones de "Me identifico"
+    document.querySelectorAll('.relate-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = parseInt(btn.dataset.id);
+            const reflection = communityReflections.find(r => r.id === id);
+            if (reflection) {
+                reflection.relateCount++;
+                btn.querySelector('.count').textContent = reflection.relateCount;
+                btn.classList.add('active');
             }
-            if (eventTimer > 0) {
-                eventTimer -= deltaTime;
-                if (eventTimer <= 0) {
-                    activeEvent = null;
-                    baseScore += 100; // Bonus por sobrevivir evento
-                    message = '+100 Evento Superado';
-                    messageTimer = 1000;
-                }
-            } else if (gameTime >= nextEventTime) {
-                triggerRandomEvent();
-                nextEventTime = gameTime + 15000 + Math.random() * 15000;
-            }
-        }
-        
-        function updatePlanets() {
-            for (let i = planets.length - 1; i >= 0; i--) {
-                const planet = planets[i];
-                planet.x -= planet.speed;
-                planet.rotation += planet.rotationSpeed;
-                // Bonus por esquivar
-                if (!planet.passed && planet.x < ship.x - planet.width/2) {
-                    planet.passed = true;
-                    baseScore += 10;
-                    message = '+10 Esquivado';
-                    messageTimer = 1000;
-                }
-                if (planet.x < -50) {
-                    planets.splice(i, 1);
-                    createPlanet();
-                }
-            }
-        }
-        
-        function updateEnergies() {
-            for (let i = energies.length - 1; i >= 0; i--) {
-                const energy = energies[i];
-                energy.x -= energy.speed;
-                energy.glow = 0.6 + Math.sin(gameTime / 300) * 0.4;
-                if (energy.x < -20) {
-                    energies.splice(i, 1);
-                    createEnergy();
-                }
-            }
-        }
-        
-        function updateOtherPlayers() {
-            for (let i = 0; i < otherPlayers.length; i++) {
-                const player = otherPlayers[i];
-                player.x += (Math.random() * 2 - 0.5);
-                if (Math.random() < 0.05) player.y += Math.random() < 0.5 ? -20 : 10;
-                if (player.x > canvas.width) player.x = 0;
-                if (player.y < 50) player.y = 50;
-                if (player.y > canvas.height - 50) player.y = canvas.height - 50;
-                player.stability -= 0.01;
-                if (Math.random() < 0.01) player.stability += 5;
-                if (player.stability <= 0 || (Math.random() < 0.0005 && !player.explosion)) {
-                    player.explosion = true;
-                    player.explosionTime = gameTime;
-                    player.stability = 0;
-                    if (Math.random() < 0.5) addChatMessage(player.name + ': ¡Boom!');
-                }
-                if (player.explosion && gameTime - player.explosionTime > 2000) {
-                    player.explosion = false;
-                    player.x = 0;
-                    player.stability = 50;
-                }
-            }
-        }
-        
-        function checkCollisions() {
-            for (let i = 0; i < planets.length; i++) {
-                const planet = planets[i];
-                if (ship.x + ship.width > planet.x - planet.width/2 &&
-                    ship.x < planet.x + planet.width/2 &&
-                    ship.y + ship.height > planet.y - planet.height/2 &&
-                    ship.y < planet.y + planet.height/2) {
-                    stability -= planet.type.damage;
-                    if (stability < 0) stability = 0;
-                    message = '¡' + capitalize(planet.type.name) + '! -' + planet.type.damage;
-                    messageTimer = 1000;
-                    if (Math.random() < 0.3) {
-                        const messages = ['¡Auch!', '¡Eso dolió!', 'Cuidado...'];
-                        addChatMessage(username + ': ' + messages[Math.floor(Math.random() * messages.length)]);
-                    }
-                    planet.x += 50;
-                }
-            }
-            for (let i = energies.length - 1; i >= 0; i--) {
-                const energy = energies[i];
-                const dx = ship.x + ship.width/2 - energy.x;
-                const dy = ship.y + ship.height/2 - energy.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < ship.width/2 + energy.radius) {
-                    stability += energy.value;
-                    baseScore += 50; // Bonus por energía
-                    if (stability > 100) stability = 100;
-                    message = '+' + energy.value + ' Energía\n+50 Puntos';
-                    messageTimer = 1000;
-                    if (Math.random() < 0.2) {
-                        const messages = ['¡Energía!', '+5 💙', '¡Recarga!'];
-                        addChatMessage(username + ': ' + messages[Math.floor(Math.random() * messages.length)]);
-                    }
-                    energies.splice(i, 1);
-                    createEnergy();
-                }
-            }
-        }
-        
-        function triggerRandomEvent() {
-            const event = eventTypes[Math.floor(Math.random() * eventTypes.length)];
-            activeEvent = event;
-            eventTimer = event.duration;
-            message = event.text;
-            messageTimer = event.duration;
-            addChatMessage('Sistema: ' + event.text);
-            if (event.name === 'cosmicScream') ship.velocity = Math.random() * 10 - 5;
-        }
-        
-        function render() {
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            drawStars();
-            drawOtherPlayers();
-            drawPlanets();
-            drawEnergies();
-            drawShip();
-            drawUI();
-            if (activeEvent) drawEventEffects();
-            if (message && messageTimer > 0) drawMessage();
-        }
-        
-        function drawStars() {
-            for (let i = 0; i < stars.length; i++) {
-                const star = stars[i];
-                let alpha = star.alpha;
-                if (star.twinkle) {
-                    alpha = star.alpha + Math.sin(gameTime * star.twinkleSpeed) * 0.3;
-                    alpha = Math.max(0.1, Math.min(1.0, alpha));
-                }
-                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-                ctx.beginPath();
-                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
-                ctx.fill();
-                star.x -= 0.1;
-                if (star.x < 0) star.x = canvas.width;
-            }
-        }
-        
-        function drawPlanets() {
-            for (let i = 0; i < planets.length; i++) {
-                const planet = planets[i];
-                ctx.save();
-                ctx.translate(planet.x, planet.y);
-                ctx.rotate(planet.rotation);
-                if (planet.type.shape === 'rectangle') {
-                    ctx.fillStyle = planet.type.color;
-                    ctx.fillRect(-planet.width/2, -planet.height/2, planet.width, planet.height);
-                    if (planet.type.name === 'anger') {
-                        ctx.strokeStyle = planet.type.color;
-                        ctx.lineWidth = 3;
-                        for (let j = 0; j < 8; j++) {
-                            const angle = (j / 8) * Math.PI * 2;
-                            ctx.beginPath();
-                            ctx.moveTo(0, 0);
-                            ctx.lineTo(Math.cos(angle) * (planet.width/2 + 10), Math.sin(angle) * (planet.height/2 + 10));
-                            ctx.stroke();
-                        }
-                    }
-                } else if (planet.type.shape === 'circle') {
-                    ctx.fillStyle = planet.type.color;
-                    ctx.beginPath();
-                    ctx.arc(0, 0, planet.radius, 0, Math.PI * 2);
-                    ctx.fill();
-                } else if (planet.type.shape === 'star') {
-                    drawStar(0, 0, 5, planet.radius, planet.radius * 0.4, planet.type.color);
-                }
-                ctx.restore();
-            }
-        }
-        
-        function drawStar(x, y, points, outerRadius, innerRadius, color) {
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            for (let i = 0; i < points * 2; i++) {
-                const radius = i % 2 === 0 ? outerRadius : innerRadius;
-                const angle = (i / (points * 2)) * Math.PI * 2;
-                const px = x + Math.cos(angle) * radius;
-                const py = y + Math.sin(angle) * radius;
-                if (i === 0) ctx.moveTo(px, py);
-                else ctx.lineTo(px, py);
-            }
-            ctx.closePath();
-            ctx.fill();
-        }
-        
-        function drawEnergies() {
-            for (let i = 0; i < energies.length; i++) {
-                const energy = energies[i];
-                ctx.fillStyle = `rgba(0, 255, 255, ${energy.glow * 0.3})`;
-                ctx.beginPath();
-                ctx.arc(energy.x, energy.y, energy.radius + 5, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = `rgba(0, 255, 255, ${energy.glow})`;
-                ctx.beginPath();
-                ctx.arc(energy.x, energy.y, energy.radius, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-        
-        function drawShip() {
-            const color = getStabilityColor(stability);
-            ctx.fillStyle = color.replace('rgb', 'rgba').replace(')', ', 0.3)');
-            ctx.beginPath();
-            ctx.moveTo(ship.x, ship.y);
-            ctx.lineTo(ship.x + ship.width, ship.y + ship.height/2);
-            ctx.lineTo(ship.x, ship.y + ship.height);
-            ctx.closePath();
-            ctx.fill();
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(ship.x, ship.y);
-            ctx.lineTo(ship.x + ship.width, ship.y + ship.height/2);
-            ctx.lineTo(ship.x, ship.y + ship.height);
-            ctx.closePath();
-            ctx.stroke();
-            ctx.fillStyle = '#fff';
-            ctx.font = '14px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(username, ship.x + ship.width/2, ship.y - 10);
-        }
-        
-        function drawOtherPlayers() {
-            for (let i = 0; i < otherPlayers.length; i++) {
-                const player = otherPlayers[i];
-                if (player.x >= 0 && player.x <= canvas.width) {
-                    const color = getStabilityColor(player.stability);
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.moveTo(player.x, player.y);
-                    ctx.lineTo(player.x + 20, player.y + 10);
-                    ctx.lineTo(player.x, player.y + 20);
-                    ctx.closePath();
-                    ctx.stroke();
-                    ctx.fillStyle = '#fff';
-                    ctx.font = '12px Arial';
-                    ctx.textAlign = 'center';
-                    if (player.explosion) {
-                        const size = Math.min(1, (gameTime - player.explosionTime) / 500) * 20;
-                        ctx.fillStyle = '#ff0';
-                        ctx.beginPath();
-                        ctx.arc(player.x + 10, player.y + 10, size, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.fillStyle = '#f00';
-                        ctx.beginPath();
-                        ctx.arc(player.x + 10, player.y + 10, size * 0.7, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.fillText(player.name + ' 💥', player.x + 10, player.y - 10);
-                    } else {
-                        ctx.fillText(player.name, player.x + 10, player.y - 10);
-                    }
-                }
-            }
-        }
-        
-        function drawUI() {
-            ctx.fillStyle = '#fff';
-            ctx.font = '20px Arial';
-            ctx.textAlign = 'left';
-            ctx.fillText('Puntuación: ' + score, 10, 30);
-            ctx.fillText('Tiempo: ' + timeSurvived + ' seg', 10, 60);
-            ctx.fillStyle = '#333';
-            ctx.fillRect(canvas.width - 220, 10, 200, 25);
-            const barWidth = (stability / 100) * 200;
-            ctx.fillStyle = getStabilityColor(stability);
-            ctx.fillRect(canvas.width - 220, 10, barWidth, 20);
-            ctx.fillStyle = '#fff';
-            ctx.font = '14px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(Math.floor(stability) + '%', canvas.width - 120, 25);
-        }
-        
-        function drawMessage() {
-            ctx.fillStyle = '#fff';
-            ctx.font = '30px Arial';
-            ctx.textAlign = 'center';
-            const lines = message.split('\n');
-            for (let i = 0; i < lines.length; i++) {
-                ctx.fillText(lines[i], canvas.width / 2, canvas.height / 2 + (i * 35));
-            }
-        }
-        
-        function drawEventEffects() {
-            if (activeEvent.name === 'memeRain') {
-                const progress = 1 - (eventTimer / activeEvent.duration);
-                const count = 10;
-                for (let i = 0; i < count; i++) {
-                    const x = (canvas.width / count) * i + (canvas.width / count / 2);
-                    const y = -50 + progress * (canvas.height + 100);
-                    const emoji = ['😂', '😱', '🤣', '😜', '🤯'][i % 5];
-                    ctx.font = '40px Arial';
-                    ctx.fillText(emoji, x, y);
-                }
-            } else if (activeEvent.name === 'cosmicScream') {
-                ctx.save();
-                ctx.translate(Math.random() * 10 - 5, Math.random() * 10 - 5);
-                ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.restore();
-            } else if (activeEvent.name === 'dramaPlanet') {
-                const progress = Math.min(1, (activeEvent.duration - eventTimer) / 1000);
-                const exitProgress = Math.max(0, (eventTimer - 2000) / 1000);
-                const x = canvas.width + 100 - (progress * 300) + (exitProgress * 300);
-                const y = canvas.height / 2;
-                ctx.fillStyle = 'rgba(255, 0, 255, 0.7)';
-                ctx.beginPath();
-                ctx.arc(x, y, 100, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = '#fff';
-                ctx.font = '20px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('¡No eres suficiente!', x, y);
-            }
-        }
-        
-        function showGameOver() {
-            document.getElementById('game-over').style.display = 'flex';
-            document.getElementById('final-score').textContent = 'Puntuación Final: ' + score;
-            document.getElementById('time-survived').textContent = 'Tiempo Sobrevivido: ' + timeSurvived + ' segundos';
-            addChatMessage('Sistema: ' + username + ' explotó con ' + score + ' puntos');
-            cancelAnimationFrame(animationId);
-        }
-        
-        function getStabilityColor(value) {
-            if (value <= 30) return 'rgb(255, 0, 0)';
-            else if (value <= 60) return 'rgb(255, 255, 0)';
-            else return 'rgb(0, 255, 0)';
-        }
-        
-        function capitalize(string) {
-            return string.charAt(0).toUpperCase() + string.slice(1);
-        }
-    </script>
-</body>
-</html>
+        });
+    });
+    
+    // Si no hay reflexiones que mostrar
+    if (reflectionsToShow.length === 0) {
+        container.innerHTML = '<p style="text-align: center; grid-column: 1/-1;">No se encontraron reflexiones similares. Intenta con otro filtro.</p>';
+    }
+}
